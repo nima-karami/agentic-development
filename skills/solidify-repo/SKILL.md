@@ -15,6 +15,14 @@ It is **language-agnostic**: detect the stack, then look up the *current* best
 concrete tools for that stack with WebSearch rather than assuming a fixed
 toolchain. The methodology is fixed; the tools are not.
 
+`references/tooling-2026.md` is a **curated, maintained** per-stack reference
+(formatter / linter / dead-code / complexity / duplication / SAST / secret-scan /
+dep-audit / verify-harness picks, with consolidation flags and what to avoid). It is
+the product of deeper research than an ad-hoc inline search will reproduce, so treat
+its tool *selections* as the default — start from them, don't re-derive the toolchain
+from scratch. Use WebSearch only to confirm the **current version and maintenance
+status** of the chosen tool before installing (the file is dated; versions move).
+
 ## Scope (v1 — the four highest-leverage categories)
 
 These four are the most strongly evidence-backed, most commonly-gotten-wrong
@@ -23,7 +31,11 @@ moves for agent-readiness. Do not silently expand scope beyond them.
 1. **Instruction files** — `AGENTS.md` / `CLAUDE.md` / `.cursorrules` etc.
 2. **Deterministic checks** — formatter + linter + dead-code + complexity, in pre-commit/CI.
 3. **One-command verify harness** — a single `verify` returning exit 0/1.
-4. **Security gate** — a SAST step wired into the harness/CI.
+4. **Security gate** — three distinct layers, all wired into the harness/CI:
+   **SAST** (scans your code), **dependency/supply-chain audit** (scans your
+   dependency tree for known-vulnerable packages), and **secret scanning** (catches
+   committed credentials). These are not interchangeable — SAST never inspects your
+   dependencies.
 
 ## Hard rules
 
@@ -31,8 +43,10 @@ moves for agent-readiness. Do not silently expand scope beyond them.
   not. Tell the user to commit/stash first, so every change you make is reviewable.
 - **One category at a time.** Show the plan/diff, get a yes/skip via
   AskUserQuestion, then apply. Never batch all four without consent.
-- **Web-search the tools, don't assume them.** Tooling changes; your training is
-  stale. Confirm the current recommended linter/SAST/etc. for the detected stack.
+- **Tool selection comes from `references/tooling-2026.md`, not your training.**
+  Your training is stale and an inline search won't match the curated reference's
+  depth. Take the picks from there; use WebSearch only to confirm each chosen tool's
+  current version/maintenance for the detected stack before installing.
 - **Self-verify before claiming done.** Run the new `verify` harness and confirm
   it is green. Evidence before assertions.
 
@@ -85,9 +99,17 @@ detector, and complexity check exist and run in pre-commit/CI. Missing any →
 and returns a clean exit code? Scattered/undocumented commands → **Weak**. None →
 **Missing**.
 
-**4. Security gate.** Is any SAST (e.g. Semgrep) run before merge? Almost always
-**Missing** — and the highest-risk gap: agents produce functionally-correct but
-insecure code far more often than humans, so "tests pass" is not "safe".
+**4. Security gate.** Score all **three** layers separately — a repo can have one
+and be missing the others:
+- **SAST** (e.g. Semgrep) — scans your source for vulnerable patterns.
+- **Dependency/supply-chain audit** (e.g. `npm`/`pnpm audit`, OSV-Scanner) — scans
+  your dependency tree against advisory DBs. A SAST pass does **not** cover this; a
+  repo with Semgrep but no dep audit is still **Missing** this layer.
+- **Secret scanning** (e.g. gitleaks) — catches committed credentials.
+
+Any layer absent → **Weak**; none → **Missing**. This is the highest-risk category:
+agents produce functionally-correct but insecure code, and pull in vulnerable
+packages, far more often than humans — so "tests pass" is not "safe".
 
 ## Step 3 — Write the report
 
@@ -103,17 +125,24 @@ get apply/skip, then apply only the approved ones:
 1. **Instruction files** → rewrite to pass the Discoverability Filter. Delete
    discoverable content; keep/condense gotchas. Target a short file (~10 lines of
    real gotchas is a healthy result; an empty file is a valid result).
-2. **Deterministic checks** → `WebSearch` for the current recommended
-   formatter/linter/dead-code/complexity tools for the **detected stack**, install
-   them, add config, and wire a pre-commit hook + a CI job. Enforce a sane
-   complexity ceiling where the tool supports it.
+2. **Deterministic checks** → take the formatter/linter/dead-code/complexity/**duplication**
+   picks for the detected stack from `references/tooling-2026.md`, `WebSearch` only to
+   confirm each one's current version/maintenance, then install them, add config, and
+   wire a pre-commit hook + a CI job. Enforce a sane complexity ceiling, and a
+   duplication threshold (AI-generated code clones heavily), where supported.
 3. **Verify harness** → create or normalize **one** entry point (`make verify`,
    `npm run verify`, or a `justfile` recipe) that runs format-check + lint +
-   typecheck + tests + security, exiting non-zero on any failure. Wire it as the
-   CI gate.
-4. **Security gate** → `WebSearch` for the current recommended SAST for the stack
-   (Semgrep is a strong language-agnostic default), add it, and include it in the
-   `verify` harness.
+   typecheck + tests + duplication + **security (all three layers below)**, exiting
+   non-zero on any failure. Wire it as the CI gate.
+4. **Security gate** → add **all three** layers, taking the stack's picks from
+   `references/tooling-2026.md` (WebSearch only to confirm versions), and include
+   each in the `verify` harness:
+   - **SAST** — Semgrep is a strong language-agnostic default.
+   - **Dependency/supply-chain audit** — the stack's native auditor (`npm`/`pnpm
+     audit` for JS/TS, `pip-audit`, `govulncheck`, `cargo-audit`, etc.) plus
+     OSV-Scanner as a cross-stack baseline. **Do not skip this thinking SAST covers
+     it — it does not.**
+   - **Secret scanning** — gitleaks (pre-commit + CI diff).
 
 ## Step 5 — Self-verify
 
@@ -139,6 +168,12 @@ happened. One short file: Context / Decision / Consequences.
 - **Don't add ports/adapters/hexagonal layering here.** That's tempting "agent
   readiness" theater and out of v1 scope — it adds files without earning their
   keep on most repos. Stick to the four categories.
+- **"I added SAST, so security is done" is the trap.** SAST scans your code;
+  it is blind to your dependencies. A repo with Semgrep but no `npm audit`/OSV-Scanner
+  is wide open to a vulnerable or malicious package, and a repo with both but no
+  gitleaks can still leak a committed key. The security gate is **not** satisfied
+  until all three layers — SAST, dependency/supply-chain audit, and secret scanning —
+  are wired into the harness. Treating any one as "security" is a partial gate.
 - **The skill is the methodology; there is no bundled driver.** A language-agnostic
   detector script would go stale immediately — the detection lives in Step 1's
   probes and your judgment + WebSearch, on purpose.
