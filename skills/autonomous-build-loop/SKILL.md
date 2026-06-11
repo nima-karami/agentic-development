@@ -62,17 +62,23 @@ Detailed playbook with inputs/outputs per skill: `references/composition.md`.
 State files: `references/state-ledger.md`. Parallelism + unattended detach:
 `references/parallel-and-detach.md`.
 
-| Phase | What happens | Invoke (Skill tool) |
-|---|---|---|
-| **0 · Ground** | Ensure the repo has deterministic gates, a one-command verify harness, and a security gate. If missing/thin, establish them before any feature work. | `solidify-repo` |
-| **1 · Spec** | Turn each wishlist item into a right-sized, buildable spec with acceptance criteria. Run it in **autonomous mode**; capture its `SPEC / TIER / DECISIONS_NEEDED` handoff into the ledger. | `feature-spec` |
-| **1b · Review** *(design-heavy/FULL features only)* | Fresh-eyes architecture check on the spec before building. Record blockers. | `architecture-critic` |
-| **2 · Plan** | Turn each spec into a concrete, step-by-step implementation plan. | `superpowers:writing-plans` |
-| **3 · Isolate** | Give each feature an isolated workspace so parallel work can't collide. | `superpowers:using-git-worktrees` |
-| **3b · Fan out** *(independent features)* | Run features with no shared deps concurrently. | `superpowers:dispatching-parallel-agents` |
-| **4 · Build** | Execute each plan task-by-task, test-first. | `superpowers:executing-plans` / `superpowers:subagent-driven-development` + `superpowers:test-driven-development` |
-| **5 · Verify** | Prove the feature works against its acceptance criteria, with evidence — independently of how it was built. | `superpowers:verification-before-completion` + `superpowers:requesting-code-review` |
-| **6 · Integrate** | Land the verified work; decide merge/PR. | `superpowers:finishing-a-development-branch` |
+**Right-size to the feature's tier.** `feature-spec` tags each item **LITE** or
+**FULL** — let that drive how much pipeline it gets. Spending FULL machinery
+(separate plan, design review, code review, per-phase subagents) on a LITE feature
+is exactly the token waste this skill must avoid — just as much a defect as
+under-building a FULL one. The "Applies to" column says when each phase runs.
+
+| Phase | What happens | Invoke (Skill tool) | Applies to |
+|---|---|---|---|
+| **0 · Ground** | Ensure deterministic gates, a one-command verify harness, and a security gate. Establish them if missing. | `solidify-repo` | **once per run** |
+| **1 · Spec** | Turn each item into a right-sized, buildable spec. Run **autonomous**; capture its `SPEC / TIER / DECISIONS_NEEDED` handoff. | `feature-spec` | every feature |
+| **1b · Design review** | Fresh-eyes architecture check before building. | `architecture-critic` | **only FULL features that introduce new structure/boundaries** — usually skip |
+| **2 · Plan** | Turn the spec into a step-by-step implementation plan. | `superpowers:writing-plans` | **FULL only** — LITE builds straight from the spec |
+| **3 · Isolate** | Isolated workspace so parallel work can't collide. | `superpowers:using-git-worktrees` | any feature run in parallel (Phase 3b); else optional |
+| **3b · Fan out** | Run independent features concurrently. | `superpowers:dispatching-parallel-agents` | 2+ **confirmed-independent** features |
+| **4 · Build** | Implement test-first; write evidence. | `superpowers:executing-plans` / `superpowers:subagent-driven-development` + `superpowers:test-driven-development` | every feature — **LITE: one fresh-context subagent does spec→build→verify; FULL: per-phase** |
+| **5 · Verify** | Prove it works against acceptance criteria, with evidence, independent of how it was built. | `superpowers:verification-before-completion` (+ `superpowers:requesting-code-review`) | every feature — **code review FULL/risky only** |
+| **6 · Integrate** | Land the verified work; decide merge/PR. | `superpowers:finishing-a-development-branch` | every feature |
 
 ### What you (the conductor) do between phases
 
@@ -90,8 +96,10 @@ State files: `references/state-ledger.md`. Parallelism + unattended detach:
    never loop forever, never halt the run. A genuinely infeasible feature is
    recorded as blocked with the reason, never faked or stubbed.
 5. **Re-evaluate against the goal each pass. Stop only when every feature is
-   verified-done or quarantined.** Then emit the final report: shipped (with
-   evidence) / blocked (with reasons) / decisions queued during autonomy.
+   verified-done or quarantined.** Then **write the final report to
+   `docs/builds/<date>-run-report.md`** (not just the chat, which vanishes after an
+   unattended run): shipped (with evidence) / blocked (with reasons) / decisions
+   queued during autonomy.
 
 ## Modes
 
@@ -108,6 +116,9 @@ State files: `references/state-ledger.md`. Parallelism + unattended detach:
   the primary failure of this skill. Delegate.
 - **Running this on a small build.** If it fits one context, skip the loop and use
   the phase skills directly.
+- **Applying FULL machinery to LITE features.** A separate plan, design review, code
+  review, and per-phase subagents on a one-surface feature burns tokens for nothing.
+  Let the tier gate the pipeline.
 - **Skipping Phase 0.** Looping against gates that don't exist proves nothing.
 - **Self-certifying.** "I implemented it" is not done; the verification skill's
   evidence is.

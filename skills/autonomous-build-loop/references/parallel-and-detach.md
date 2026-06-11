@@ -47,6 +47,6 @@ resuming cleanly from the ledger when restarted.
 
 ## Resumption after compaction or restart
 
-On any resume, before acting: re-read `goal.md`, `tasks.yaml`, `changelog.md`, and
-`blockers.md`. Treat a stale `in_progress` task as `todo` and re-verify rather than
-trusting it was finished. Never reconstruct progress from memory.
+On any resume, before acting: re-read `goal.md`, `tasks.yaml`, and `blockers.md`.
+Treat a stale `in_progress` task as `todo` and re-verify rather than trusting it was
+finished. Never reconstruct progress from memory.

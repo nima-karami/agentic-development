@@ -5,27 +5,34 @@ compaction, interruption, and resumption. After any compaction or restart, the
 Supervisor **re-reads this ledger before acting** — it is the single source of
 truth, above any recollection.
 
-Put the ledger in a stable, ignored-by-build location in the target repo, e.g.
-`./.autoloop/`. Keep entries terse and machine-greppable.
+Put the machine run-state in `./.autoloop/` at the repo root and **add it to
+`.gitignore`** — it's transient run-state, not a committed artifact. Keep entries
+terse and machine-greppable. (Human-readable artifacts go under `docs/`, not here:
+specs → `docs/specs/<slug>.md`, plans → `docs/specs/<slug>.plan.md`, final report →
+`docs/builds/<date>-run-report.md`.)
+
+Keep the ledger lean — the Supervisor re-reads it every pass, so every file is a
+recurring token cost. Five files, no more:
 
 ## Files
 
 | File | Holds | Re-read on resume |
 |---|---|---|
-| `goal.md` | The real, user-visible outcome the whole wishlist serves. One paragraph. The thing the Supervisor checks the finished set against. | yes |
-| `plan.md` | The decomposition rationale + the dependency graph (which tasks block which). | yes |
-| `tasks.yaml` | One entry per task: id, outcome, deps, gates, evidence paths, status. The work queue. | yes |
+| `goal.md` | The real, user-visible outcome the whole wishlist serves (one paragraph) + the Phase 0 verify commands. The thing the Supervisor checks the finished set against. | yes |
+| `tasks.yaml` | One entry per task: id, outcome, tier, deps, gates, evidence, status, notes. The work queue — and the dependency graph lives here in `deps` (no separate plan file). | yes |
 | `evidence/` | Test logs, run output, screenshots, verifier notes — the proof a task passed. | on demand |
-| `defects.md` | Append-only: every FAIL with the concrete defect and which gate caught it. | on demand |
-| `blockers.md` | Quarantined/infeasible features with the reason and what would unblock them. Surfaced in the final report. | yes |
-| `changelog.md` | Append-only one-liner per completed task: what changed, what remains. The resumption summary. | yes |
+| `blockers.md` | Quarantined/infeasible features + queued high-severity decisions, with reason and what would unblock. Surfaced in the final report. | yes |
 | `gate-baseline.txt` | Phase 0 snapshot (hashes) of the gate definitions — test/lint/CI config and existing test files — that Phase 5 diffs against to detect weakened gates. | on demand |
+
+No `plan.md` (the graph is `tasks.yaml`'s `deps`), no `changelog.md` (git history
+records what changed), no `defects.md` (a failed gate goes in that task's `notes`).
 
 ## `tasks.yaml` shape
 
 ```yaml
 - id: slugify
   outcome: "Exported slugify(str) producing URL-safe slugs per spec"
+  tier: LITE                     # from feature-spec; gates how much pipeline it gets
   deps: []                       # ids that must be done first; [] = independent
   status: todo                   # todo | in_progress | done | blocked
   gates:                         # executable; each must pass
@@ -33,9 +40,11 @@ Put the ledger in a stable, ignored-by-build location in the target repo, e.g.
     - "node scripts/lint.js"
   evidence:                      # written by the executor, checked by the verifier
     - ".autoloop/evidence/slugify-test.log"
+  notes: ""                      # last defect on a failed attempt; retry context
 
 - id: api
   outcome: "Move endpoint persists ordering and enforces auth"
+  tier: FULL
   deps: [schema]                 # runs only after schema is done -> sequential
   status: todo
   gates:
@@ -44,6 +53,7 @@ Put the ledger in a stable, ignored-by-build location in the target repo, e.g.
   evidence:
     - ".autoloop/evidence/api-test.log"
     - ".autoloop/evidence/api-runtime.txt"
+  notes: ""
 ```
 
 ## Status semantics
@@ -54,6 +64,9 @@ Put the ledger in a stable, ignored-by-build location in the target repo, e.g.
 - `done` → a Verifier returned PASS **and** the listed evidence files exist.
 - `blocked` → quarantined after the retry limit, or genuinely infeasible. Has an
   entry in `blockers.md`. Never silently flips back to done.
+
+The `notes` field carries the last failure's defect so a retry (fresh subagent) has
+the context without a separate defects file.
 
 ## Gate kinds (layer them)
 
