@@ -26,7 +26,7 @@ before trusting). Skills are designed from where the two agree.
 
 | Skill | Distilled from | What it does |
 |-------|----------------|--------------|
-| [`solidify-repo`](skills/solidify-repo/SKILL.md) | `agent-human-repo` | Audits a repo for human/agent collaboration — instruction files, deterministic checks, a one-command verify harness, and a security gate — and applies fixes with per-category approval. |
+| [`solidify-repo`](skills/solidify-repo/SKILL.md) | `agent-human-repo` | Audits a repo for human/agent collaboration — instruction files, deterministic checks, a one-command verify harness, and a three-layer security gate (SAST + dependency/supply-chain audit + secret scanning) — and applies fixes with per-category approval. Pulls stack-specific tool picks from a curated tooling reference. |
 | [`architecture-critic`](skills/architecture-critic/SKILL.md) | `agent-driven-architecture-design` | Fresh-context adversarial review of a written design *before* code: a 7-dimension rubric, severity-tagged findings, and a PROCEED/REVISE verdict. |
 | [`feature-spec`](skills/feature-spec/SKILL.md) | `agent-driven-feature-spec` | Turns a vague feature idea into a right-sized spec before implementation — triage tiers to avoid over-production, fixed checklists for uniform coverage, and a machine-parseable handoff block for autonomous pipelines. |
 | [`autonomous-build-loop`](skills/autonomous-build-loop/SKILL.md) | `long-running-agents` | Conductor that drives a whole wishlist to *verified* completion in one long/unattended run — composes the other skills per phase, keeps state on disk for resumability, and scales pipeline depth to each feature's tier. |
