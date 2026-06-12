@@ -15,6 +15,18 @@ It is **language-agnostic**: detect the stack, then look up the *current* best
 concrete tools for that stack with WebSearch rather than assuming a fixed
 toolchain. The methodology is fixed; the tools are not.
 
+**Why these gates exist: human↔agent collaboration and rot-prevention — production is
+included, but it is not the point.** This repo is being prepared for *agentic
+development* — humans and agents working the same code. The deterministic checks (lint,
+dead-code, duplication, complexity) run on *every* commit and *every* agent loop because
+that is when a codebase rots: an autonomous agent left unchecked accretes dead code,
+copy-pasted logic, and runaway complexity fast, and a messy tree then degrades every
+later edit by human and agent alike. These checks *do* help production too — but
+production is not their only purpose, and that is the rationalization to refuse: "it
+only matters for production, so relax it during dev" throws away the collaboration and
+anti-rot reasons the gate exists. The same gate runs identically in dev, pre-commit,
+and CI.
+
 `references/tooling-2026.md` is a **curated, maintained** per-stack reference
 (formatter / linter / dead-code / complexity / duplication / SAST / secret-scan /
 dep-audit / verify-harness picks, with consolidation flags and what to avoid). It is
@@ -49,6 +61,12 @@ moves for agent-readiness. Do not silently expand scope beyond them.
   current version/maintenance for the detected stack before installing.
 - **Self-verify before claiming done.** Run the new `verify` harness and confirm
   it is green. Evidence before assertions.
+- **Never disable, downgrade, narrow, or defer a check as "production-only" or "just
+  for now."** Turning off dead-code / duplication / complexity / lint to move faster is
+  the exact drift that rots an agent-built codebase and breaks the human↔agent
+  collaboration this repo is being prepared for. Production benefits too, but it is not
+  the reason — so "it's only for production" is never grounds to relax the gate. Make
+  the code pass the check — never make the check stop looking.
 
 ---
 
@@ -126,7 +144,11 @@ get apply/skip, then apply only the approved ones:
 
 1. **Instruction files** → rewrite to pass the Discoverability Filter. Delete
    discoverable content; keep/condense gotchas. Target a short file (~10 lines of
-   real gotchas is a healthy result; an empty file is a valid result).
+   real gotchas is a healthy result; an empty file is a valid result). **Include one
+   non-negotiable line: the repo's verify command is the gate, it runs every loop /
+   commit, and its checks (lint, dead-code, duplication, complexity, security) must
+   never be disabled or downgraded to make progress** — this is what stops a future
+   agent working in the repo from rationalizing the gate away mid-build.
 2. **Deterministic checks** → take the formatter/linter/dead-code/complexity/**duplication**
    picks for the detected stack from `references/tooling-2026.md`, `WebSearch` only to
    confirm each one's current version/maintenance, then install them, add config, and
@@ -152,7 +174,10 @@ get apply/skip, then apply only the approved ones:
 
 Run the new `verify` command. Confirm exit 0. If the newly-added linters/SAST
 surface pre-existing violations, **report them to the user** — do not silently
-suppress rules to force green. Let the user decide: fix now, or baseline.
+suppress rules to force green. Let the user decide: fix now, or baseline the
+*existing* backlog (new and changed code stays fully gated). "Baseline" never means
+disabling a check, lowering a threshold, or excluding dead-code/duplication going
+forward.
 
 ## Step 6 — Record the decision
 
@@ -165,8 +190,12 @@ happened. One short file: Context / Decision / Consequences.
 ## Gotchas
 
 - **Adding a linter to an existing repo floods you with violations.** That's
-  expected. Separate "wire up the gate" from "fix the backlog" — propose a baseline
-  (e.g. lint only changed files, or a ratchet) rather than blocking on a huge fixup.
+  expected. Separate "wire up the gate" from "fix the backlog" — baseline only the
+  *pre-existing* violations (a snapshot/ratchet, or scope the first pass to changed
+  files) so the fixup isn't blocking. **The gate still runs in full, and new/changed
+  code must pass every check.** Baselining the backlog is never licence to disable a
+  check, lower a threshold, or drop dead-code/duplication going forward — that is the
+  "it's only for production" drift, and it defeats the whole point.
 - **`grep -E` on Windows Git Bash** works, but CRLF line endings can confuse
   size/line checks. `wc -l` is reliable; trust it over `grep -c`.
 - **Don't add ports/adapters/hexagonal layering here.** That's tempting "agent

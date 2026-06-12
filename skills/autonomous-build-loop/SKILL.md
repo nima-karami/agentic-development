@@ -49,7 +49,9 @@ and a verified stop condition** — not making the model "try harder."
   from memory or prose. Re-read the ledger after any compaction before acting.
 - **No executable gates → no feature work.** Ground the repo first (Phase 0).
 - **Never weaken, delete, narrow, or mock-out a gate to make it pass.** A gamed
-  gate is a failed task.
+  gate is a failed task. Disabling a check as "production-only" or "just for now" is
+  weakening it — the lint / dead-code / duplication / complexity gates run every loop
+  precisely to stop an autonomous build from rotting the codebase.
 - **"Verified" is not "landed." Commit, then verify the merge.** A feature is done
   only when its work is **committed** (record the commit SHA as evidence) *and* the
   branch is merged *and* the **merged tree** passes the full verify. Never
