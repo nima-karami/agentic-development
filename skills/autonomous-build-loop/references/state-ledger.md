@@ -7,9 +7,11 @@ truth, above any recollection.
 
 Put the machine run-state in `./.autoloop/` at the repo root and **add it to
 `.gitignore`** — it's transient run-state, not a committed artifact. Keep entries
-terse and machine-greppable. (Human-readable artifacts go under `docs/`, not here:
-specs → `docs/specs/<slug>.md`, plans → `docs/specs/<slug>.plan.md`, final report →
-`docs/builds/<date>-run-report.md`.)
+terse and machine-greppable. (Human-readable artifacts go under `docs/`, not here —
+follow the repo's docs convention if it has one; default: specs →
+`docs/specs/YYYY-MM-DD-<slug>.md` (date-prefixed; `git mv` to `docs/specs/archive/`
+on ship), plans → `docs/plans/YYYY-MM-DD-<slug>.plan.md`, run report →
+`docs/runs/YYYY-MM-DD-<name>/report.md`. See `references/composition.md`.)
 
 Keep the ledger lean — the Supervisor re-reads it every pass, so every file is a
 recurring token cost. Five files, no more:
@@ -19,7 +21,7 @@ recurring token cost. Five files, no more:
 | File | Holds | Re-read on resume |
 |---|---|---|
 | `goal.md` | The real, user-visible outcome the whole wishlist serves (one paragraph) + the Phase 0 verify commands. The thing the Supervisor checks the finished set against. | yes |
-| `tasks.yaml` | One entry per task: id, outcome, tier, deps, gates, evidence, status, notes. The work queue — and the dependency graph lives here in `deps` (no separate plan file). | yes |
+| `tasks.yaml` | One entry per task: id, outcome, tier, deps, gates, evidence, commit, status, notes. The work queue — and the dependency graph lives here in `deps` (no separate plan file). | yes |
 | `evidence/` | Test logs, run output, screenshots, verifier notes — the proof a task passed. | on demand |
 | `blockers.md` | Quarantined/infeasible features + queued high-severity decisions, with reason and what would unblock. Surfaced in the final report. | yes |
 | `gate-baseline.txt` | Phase 0 snapshot (hashes) of the gate definitions — test/lint/CI config and existing test files — that Phase 5 diffs against to detect weakened gates. | on demand |
@@ -34,12 +36,13 @@ records what changed), no `defects.md` (a failed gate goes in that task's `notes
   outcome: "Exported slugify(str) producing URL-safe slugs per spec"
   tier: LITE                     # from feature-spec; gates how much pipeline it gets
   deps: []                       # ids that must be done first; [] = independent
-  status: todo                   # todo | in_progress | done | blocked
+  status: todo                   # todo | in_progress | done | blocked | needs-human-smoke
   gates:                         # executable; each must pass
     - "node --test test/slugify.test.js"
     - "node scripts/lint.js"
   evidence:                      # written by the executor, checked by the verifier
     - ".autoloop/evidence/slugify-test.log"
+  commit: ""                     # set at Phase 6; the SHA is proof the work is committed, not just built
   notes: ""                      # last defect on a failed attempt; retry context
 
 - id: api
@@ -53,6 +56,7 @@ records what changed), no `defects.md` (a failed gate goes in that task's `notes
   evidence:
     - ".autoloop/evidence/api-test.log"
     - ".autoloop/evidence/api-runtime.txt"
+  commit: "a1b2c3d"              # the merged commit; recorded at Phase 6
   notes: ""
 ```
 
@@ -61,7 +65,11 @@ records what changed), no `defects.md` (a failed gate goes in that task's `notes
 - `todo` → ready when every id in `deps` is `done`.
 - `in_progress` → an Executor is working it (or was, pre-compaction; on resume,
   treat a stale `in_progress` as todo and re-verify rather than trust it).
-- `done` → a Verifier returned PASS **and** the listed evidence files exist.
+- `done` → a Verifier returned PASS **and** the listed evidence files exist **and** a
+  `commit` SHA is recorded (verified-but-uncommitted is not done).
+- `needs-human-smoke` → verified only against a mock/preview; the real-runtime check
+  (FS/IPC/PTY/network) couldn't be driven autonomously. **Not** `done` — surfaced in
+  the report for a human pass.
 - `blocked` → quarantined after the retry limit, or genuinely infeasible. Has an
   entry in `blockers.md`. Never silently flips back to done.
 

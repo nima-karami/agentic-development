@@ -14,11 +14,17 @@ ledger and the loop.
 - **FULL** → the full pipeline below: Spec → (Design review if novel structure) →
   Plan → Isolate → Build (per-phase subagents) → Verify + code review → Integrate.
 
-**Where artifacts land** (keep them consistent, not scattered):
+**Where artifacts land** (keep them consistent, not scattered — a long run otherwise
+sprawls into a tree that needs manual cleanup). Follow the repo's existing docs
+convention if it has one; otherwise default to:
 - Machine run-state → `./.autoloop/` at repo root, **gitignored** (transient).
-- Specs → `docs/specs/<slug>.md` (`feature-spec`'s convention).
-- Plans → `docs/specs/<slug>.plan.md`, next to the spec (Phase 2).
-- Final run report → `docs/builds/<date>-run-report.md`.
+- Specs → `docs/specs/YYYY-MM-DD-<slug>.md`. **Date-prefix, don't sequentially
+  number** — parallel agents race on the next number; dates need no central counter.
+  On ship, `git mv` the spec to `docs/specs/archive/` so the active set stays small.
+- Plans → `docs/plans/YYYY-MM-DD-<slug>.plan.md` (a **separate** dir, not interleaved
+  with specs).
+- Run artifacts (report, audit, retro) → one folder per run:
+  `docs/runs/YYYY-MM-DD-<name>/report.md`.
 
 ## Phase 0 · Ground the repo — `solidify-repo`
 
@@ -55,6 +61,11 @@ ledger and the loop.
 - **Capture:** verdict + blockers. A REVISE verdict with blockers → loop the spec
   once (re-run Phase 1 with the feedback) before planning; if still blocked after
   one revision, quarantine and move on.
+- **Big ambiguous bets:** if this is a large new subsystem or the brief is genuinely
+  ambiguous (analogies, not a spec), don't let it auto-land on `main` — build it thin
+  and reversible on a disposable branch and surface the open product decisions in the
+  report. A throwaway branch you can discard beats a polished version of the wrong
+  thing merged into `main`.
 
 ## Phase 2 · Plan — `superpowers:writing-plans` (FULL only)
 
@@ -62,8 +73,8 @@ ledger and the loop.
   running a second planning pass on it duplicates the spec and burns tokens.
 - **In:** the approved spec.
 - **Out:** a step-by-step implementation plan with independent, checkpointed tasks.
-- **Capture:** write the plan to `docs/specs/<slug>.plan.md` (next to the spec) and
-  record that path in the task entry.
+- **Capture:** write the plan to `docs/plans/YYYY-MM-DD-<slug>.plan.md` and record
+  that path in the task entry.
 
 ## Phase 3 · Isolate — `superpowers:using-git-worktrees`
 
@@ -84,13 +95,20 @@ ledger and the loop.
   feature from spec → build → verify (don't pay per-phase handoff cost on a small
   feature). FULL → per-phase subagents as the build skill dictates.
 - **Discipline:** test-first per task; bring each to passing gates; write evidence
-  (logs/output) to `.autoloop/evidence/`.
-- **Capture:** evidence paths into the task entry.
+  (logs/output) to `.autoloop/evidence/`. The subagent runs every command **inside
+  its own worktree** — never install/build/test against the shared main checkout (a
+  stray `npm ci`/build in the wrong cwd can wipe the shared tree mid-run).
+- **Commit before handing back.** The subagent's last step is to commit its work and
+  report the commit SHA — verified-but-uncommitted work is lost when the subagent ends.
+- **Capture:** evidence paths and the commit SHA into the task entry.
 
 ## Phase 5 · Verify — `superpowers:verification-before-completion` (+ `superpowers:requesting-code-review` for FULL/risky)
 
 - **In:** the feature's spec/acceptance criteria + the diff. Verify **independently
-  of how it was built** — evidence before assertions.
+  of how it was built** — evidence before assertions, and **in the real runtime**: a
+  mock / preview / in-memory stand-in does not verify anything that crosses a host /
+  IO / IPC / PTY boundary. If the run can't drive the real environment, record the
+  task as `needs-human-smoke` (not `done`) and list it in the report.
 - **Code review:** add `superpowers:requesting-code-review` only for FULL or
   otherwise risky features. A LITE feature gets the verification pass alone — one
   independent check is enough; a second review pass on a small change is waste.
@@ -105,9 +123,15 @@ ledger and the loop.
 
 ## Phase 6 · Integrate — `superpowers:finishing-a-development-branch`
 
-- **When:** a feature is verified PASS.
-- **Out:** merged/PR'd per its guidance; mark the task `done` in `tasks.yaml`; the
-  merge unblocks dependents. (Git history is the changelog — no separate file.)
+- **When:** a feature is verified PASS **and committed** (the commit SHA is recorded
+  as evidence — uncommitted work doesn't exist).
+- **Merge, then re-verify the merged tree.** Merge one branch at a time; after each
+  merge (and any conflict resolution) run the **full verify on the merged tree
+  before** fast-forwarding `main`. Never ff an unverified merge — per-feature verify
+  in isolation misses cross-feature breakage and bad conflict resolutions. Starting
+  each parallel subagent from `git reset --hard <base>` keeps rebases clean.
+- **Out:** merged/PR'd per its guidance; record the commit SHA; mark the task `done`
+  in `tasks.yaml`; the merge unblocks dependents. (Git history is the changelog.)
 
 ## Keeping it autonomous
 

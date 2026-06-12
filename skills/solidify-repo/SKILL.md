@@ -113,9 +113,11 @@ packages, far more often than humans — so "tests pass" is not "safe".
 
 ## Step 3 — Write the report
 
-Write `solidify-report.md` to the repo root: a table of the four categories with
-score + evidence + the specific change you propose for each. This is the artifact
-the user reviews before any edits.
+Write the report as a table of the four categories with score + evidence + the
+specific change you propose for each — the artifact the user reviews before any edits.
+Place it at `solidify-report.md` in the repo root, **unless the repo already has a
+docs convention** for run artifacts (e.g. a `docs/runs/<date>-<name>/` layout), in
+which case follow it rather than dropping a stray file at the root.
 
 ## Step 4 — Apply, one category at a time (gated)
 
@@ -137,7 +139,9 @@ get apply/skip, then apply only the approved ones:
 4. **Security gate** → add **all three** layers, taking the stack's picks from
    `references/tooling-2026.md` (WebSearch only to confirm versions), and include
    each in the `verify` harness:
-   - **SAST** — Semgrep is a strong language-agnostic default.
+   - **SAST** — Semgrep is a strong language-agnostic default. It's the slowest
+     layer, so running it in **CI only** (while the fast dep-audit + secret-scan stay
+     in the local `verify`) is a fine speed tradeoff — as long as it still gates merges.
    - **Dependency/supply-chain audit** — the stack's native auditor (`npm`/`pnpm
      audit` for JS/TS, `pip-audit`, `govulncheck`, `cargo-audit`, etc.) plus
      OSV-Scanner as a cross-stack baseline. **Do not skip this thinking SAST covers

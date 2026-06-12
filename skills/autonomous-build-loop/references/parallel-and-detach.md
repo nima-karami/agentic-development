@@ -17,8 +17,18 @@ out**, and only then commit to parallel. Use the graph, don't guess:
   hard-to-trace state collisions; the wall-clock saving isn't worth a poisoned run.
 
 Each parallel feature lands through Phase 5 (verify) and Phase 6 (integrate)
-independently; the conductor merges verified branches one at a time and re-runs the
-regression gate after each merge to catch cross-feature breakage.
+independently; the conductor merges verified branches **one at a time** and runs the
+**full verify on the merged tree before fast-forwarding `main`** — never ff an
+unverified merge, since per-feature verify in isolation misses cross-feature breakage
+and bad conflict resolutions. Shared entry files (global styles, app/root entry, DI
+or plugin registries, route tables) are the usual collision points even between
+otherwise-independent features; route those merges through one serial lane. Starting
+each subagent from `git reset --hard <base>` before it begins keeps rebase churn down.
+
+**Worktree hygiene.** Every subagent operates only inside its own worktree. A
+subagent that runs `npm ci`/build/test against the shared main checkout (wrong cwd)
+can wipe its `node_modules` or build output and break `main` mid-run — confine all
+mutating commands to the worktree.
 
 ## Detached / unattended runs
 

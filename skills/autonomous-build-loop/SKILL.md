@@ -50,6 +50,20 @@ and a verified stop condition** — not making the model "try harder."
 - **No executable gates → no feature work.** Ground the repo first (Phase 0).
 - **Never weaken, delete, narrow, or mock-out a gate to make it pass.** A gamed
   gate is a failed task.
+- **"Verified" is not "landed." Commit, then verify the merge.** A feature is done
+  only when its work is **committed** (record the commit SHA as evidence) *and* the
+  branch is merged *and* the **merged tree** passes the full verify. Never
+  fast-forward an unverified merge — per-feature verify in isolation misses
+  cross-feature breakage and bad conflict resolutions. A passing build that was never
+  committed is lost work, not a finished feature.
+- **Verify in the real runtime, not a mock.** A check that only exercises a
+  mock / preview / in-memory stand-in does not verify a feature that crosses a host /
+  IO / IPC / PTY / network boundary. If the run can't drive the real environment,
+  mark the task `needs-human-smoke` in the ledger and flag it in the report — never
+  record mock-only verification as `done`.
+- **Subagents act only inside their own worktree.** Never run install/build/test or
+  any mutating command against the shared main checkout from a subagent — a stray
+  `npm ci`/build in the wrong cwd can wipe the shared tree and break the run mid-flight.
 - **Fully autonomous: never call interactive question tools mid-run.** Downstream
   skills run in their non-interactive/autonomous mode — including ones that normally
   ask for approval (e.g. repo hardening): pass them the unattended signal and record
@@ -77,8 +91,8 @@ under-building a FULL one. The "Applies to" column says when each phase runs.
 | **3 · Isolate** | Isolated workspace so parallel work can't collide. | `superpowers:using-git-worktrees` | any feature run in parallel (Phase 3b); else optional |
 | **3b · Fan out** | Run independent features concurrently. | `superpowers:dispatching-parallel-agents` | 2+ **confirmed-independent** features |
 | **4 · Build** | Implement test-first; write evidence. | `superpowers:executing-plans` / `superpowers:subagent-driven-development` + `superpowers:test-driven-development` | every feature — **LITE: one fresh-context subagent does spec→build→verify; FULL: per-phase** |
-| **5 · Verify** | Prove it works against acceptance criteria, with evidence, independent of how it was built. | `superpowers:verification-before-completion` (+ `superpowers:requesting-code-review`) | every feature — **code review FULL/risky only** |
-| **6 · Integrate** | Land the verified work; decide merge/PR. | `superpowers:finishing-a-development-branch` | every feature |
+| **5 · Verify** | Prove it works against acceptance criteria, with evidence, **in the real runtime** (not a mock), independent of how it was built. | `superpowers:verification-before-completion` (+ `superpowers:requesting-code-review`) | every feature — **code review FULL/risky only** |
+| **6 · Integrate** | Commit (record the SHA), merge, then **verify the merged tree before ff-merge**. | `superpowers:finishing-a-development-branch` | every feature |
 
 ### What you (the conductor) do between phases
 
@@ -86,7 +100,13 @@ under-building a FULL one. The "Applies to" column says when each phase runs.
    features → parallel (Phase 3b); dependent → sequential. Write it to the ledger.
    Treat spec-time independence as **provisional** — confirm features are truly
    disjoint against the Phase 2 plans' file lists before fanning out; when unsure,
-   serialize.
+   serialize. Shared entry files (global stylesheet, app/root entry, DI or plugin
+   registry, route table) are near-universal collision points even when feature
+   *logic* is disjoint — route merges that touch them through one serial lane.
+   For a **large new subsystem or genuinely ambiguous brief** (analogies, not a
+   spec), don't auto-land it on `main`: build it thin and reversible on a disposable
+   branch, keep it off `main`, and surface 2–3 explicit product decisions + your pick
+   in the report so the user can course-correct cheaply (you can't ask mid-run).
 2. **Select** every task whose deps are `done`; dispatch its phases.
 3. **Record** each phase's output to the ledger (spec handoff, evidence paths,
    review verdicts, defects).
@@ -97,9 +117,10 @@ under-building a FULL one. The "Applies to" column says when each phase runs.
    recorded as blocked with the reason, never faked or stubbed.
 5. **Re-evaluate against the goal each pass. Stop only when every feature is
    verified-done or quarantined.** Then **write the final report to
-   `docs/builds/<date>-run-report.md`** (not just the chat, which vanishes after an
-   unattended run): shipped (with evidence) / blocked (with reasons) / decisions
-   queued during autonomy.
+   `docs/runs/<date>-<name>/report.md`** (follow the repo's docs convention if it has
+   one; not just the chat, which vanishes after an unattended run): shipped (with
+   evidence + commit SHAs) / blocked (with reasons) / `needs-human-smoke` items /
+   decisions queued during autonomy.
 
 ## Modes
 
@@ -122,6 +143,14 @@ under-building a FULL one. The "Applies to" column says when each phase runs.
 - **Skipping Phase 0.** Looping against gates that don't exist proves nothing.
 - **Self-certifying.** "I implemented it" is not done; the verification skill's
   evidence is.
+- **Fast-forwarding an unverified merge.** Per-feature verify in a worktree doesn't
+  prove the *merged* tree is green; a conflict resolution or cross-feature clash can
+  break `main`. Verify after merge, before ff.
+- **Calling mock verification "done."** A preview/mock host can't exercise real
+  FS/IPC/PTY paths; mark those `needs-human-smoke`, don't claim them verified.
+- **Leaving verified work uncommitted.** A passing build that was never committed is
+  lost the moment the subagent is cut off. Commit is the last build step; the SHA is
+  the evidence.
 - **Holding plan/progress in the chat.** Compaction evicts it; the run then forgets
   finished work, repeats dead ends, or hallucinates completion. The ledger is truth.
 - **Halting on the first blocker.** Defeats the unattended purpose — quarantine and
@@ -135,6 +164,8 @@ under-building a FULL one. The "Applies to" column says when each phase runs.
 - **A gamed gate is worse than a red one** — it hides a defect and poisons every
   later "done." The verification phase must confirm gates weren't weakened.
 - **Parallel only for truly independent features.** Shared files or implicit
-  ordering across worktrees cause merge corruption — when unsure, serialize.
+  ordering across worktrees cause merge corruption — when unsure, serialize. Watch
+  the shared entry files (global styles, app root, registries, route tables): even
+  "independent" features routinely collide there, so merge through them serially.
 - **Quarantine is success, not failure.** An honest "blocked: <reason>" beats a
   fake "done"; the point is a run that can't lie about what it finished.
