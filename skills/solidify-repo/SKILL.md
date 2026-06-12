@@ -32,8 +32,15 @@ and CI.
 dep-audit / verify-harness picks, with consolidation flags and what to avoid). It is
 the product of deeper research than an ad-hoc inline search will reproduce, so treat
 its tool *selections* as the default — start from them, don't re-derive the toolchain
-from scratch. Use WebSearch only to confirm the **current version and maintenance
-status** of the chosen tool before installing (the file is dated; versions move).
+from scratch. But the file is dated. For **each** chosen tool, before installing:
+(1) fetch its **latest stable version** and pin it, and (2) **read the documentation
+for that specific version** — config formats and CLI flags change between releases
+(flat ESLint config, golangci-lint v2's revamped config, Biome's versioned schema
+URL), and installing the newest binary against stale config syntax silently breaks the
+gate. Prefer a documentation-retrieval MCP if one is available (e.g. **Context7**) to
+pull the version's docs; otherwise WebFetch the tool's official docs/changelog for that
+version. WebSearch confirms the version and maintenance status; the version's own docs
+give you the correct config. Never configure a tool from memory of an older release.
 
 ## Scope (v1 — the four highest-leverage categories)
 
@@ -57,8 +64,11 @@ moves for agent-readiness. Do not silently expand scope beyond them.
   AskUserQuestion, then apply. Never batch all four without consent.
 - **Tool selection comes from `references/tooling-2026.md`, not your training.**
   Your training is stale and an inline search won't match the curated reference's
-  depth. Take the picks from there; use WebSearch only to confirm each chosen tool's
-  current version/maintenance for the detected stack before installing.
+  depth. Take the picks from there. For each pick, before installing: confirm the
+  **latest stable version**, pin it, and **read that version's documentation** for the
+  correct config and flags (formats drift between releases). Use a docs-retrieval MCP
+  if available (e.g. **Context7**), else WebFetch the official docs; WebSearch confirms
+  version + maintenance. Never configure a tool from memory of an older version.
 - **Self-verify before claiming done.** Run the new `verify` harness and confirm
   it is green. Evidence before assertions.
 - **Never disable, downgrade, narrow, or defer a check as "production-only" or "just
@@ -150,8 +160,9 @@ get apply/skip, then apply only the approved ones:
    never be disabled or downgraded to make progress** — this is what stops a future
    agent working in the repo from rationalizing the gate away mid-build.
 2. **Deterministic checks** → take the formatter/linter/dead-code/complexity/**duplication**
-   picks for the detected stack from `references/tooling-2026.md`, `WebSearch` only to
-   confirm each one's current version/maintenance, then install them, add config, and
+   picks for the detected stack from `references/tooling-2026.md`; for each, **pin the
+   latest stable version and read that version's docs for config** (see Hard rules —
+   Context7/docs MCP if available, else WebFetch). Then install them, add config, and
    wire a pre-commit hook + a CI job. Enforce a sane complexity ceiling, and a
    duplication threshold (AI-generated code clones heavily), where supported.
 3. **Verify harness** → create or normalize **one** entry point (`make verify`,
@@ -159,8 +170,8 @@ get apply/skip, then apply only the approved ones:
    typecheck + tests + duplication + **security (all three layers below)**, exiting
    non-zero on any failure. Wire it as the CI gate.
 4. **Security gate** → add **all three** layers, taking the stack's picks from
-   `references/tooling-2026.md` (WebSearch only to confirm versions), and include
-   each in the `verify` harness:
+   `references/tooling-2026.md` (pin each to its latest version and read that version's
+   docs, per Hard rules), and include each in the `verify` harness:
    - **SAST** — Semgrep is a strong language-agnostic default. It's the slowest
      layer, so running it in **CI only** (while the fast dep-audit + secret-scan stay
      in the local `verify`) is a fine speed tradeoff — as long as it still gates merges.
