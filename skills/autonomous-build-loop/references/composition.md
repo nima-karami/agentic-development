@@ -38,8 +38,19 @@ convention if it has one; otherwise default to:
 - **Pin the gate baseline:** snapshot the gate definitions (hash the test/lint/CI
   config and existing test files) into the ledger now, so Phase 5 has a fixed
   baseline to diff against when checking that gates weren't weakened.
-- **Gate:** if the repo has no runnable checks after this phase, stop and report —
-  the whole loop depends on real gates existing.
+- **Stand up the end-to-end / observation harness.** `solidify-repo` establishes unit/
+  lint/security gates and a verify command — it does **not** by itself give you a way
+  to drive and *watch* the running artifact. The conductor must ensure one exists: for
+  a UI, a browser/UI automation tool that can launch the app and capture what renders
+  (screenshots, DOM, console, exit state) — **Playwright is the default for web/
+  Electron**; for a CLI/service/library, invoke it for real and capture stdout / exit
+  code / HTTP response / generated files. Wire this harness into the verify chain so
+  Phase 5 can produce observation evidence, not just unit results.
+- **Gate (hard refusal):** after this phase the repo must have both (a) runnable
+  deterministic checks and (b) a way to run and observe the real artifact end-to-end.
+  If either is missing and can't be stood up, **stop and report — do not run the loop
+  unit-tests-only.** An autonomous loop with no eyes on the running artifact ships
+  broken software that "passes."
 
 ## Phase 1 · Spec each item — `feature-spec` (autonomous mode)
 
@@ -94,6 +105,10 @@ convention if it has one; otherwise default to:
 - **Subagent budget:** LITE → a **single** fresh-context subagent carries the
   feature from spec → build → verify (don't pay per-phase handoff cost on a small
   feature). FULL → per-phase subagents as the build skill dictates.
+- **Subagent model:** build subagents run the **same or a cheaper/faster** model than
+  the conductor — **never a stronger/pricier** one (see `goal.md`'s `conductor_model`).
+  They implement to the approved spec/plan; architecture and taste calls stay with the
+  conductor. A design fork the subagent hits goes to `blockers.md`, not resolved inline.
 - **Discipline:** test-first per task; bring each to passing gates; write evidence
   (logs/output) to `.autoloop/evidence/`. The subagent runs every command **inside
   its own worktree** — never install/build/test against the shared main checkout (a

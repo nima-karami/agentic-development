@@ -20,7 +20,7 @@ recurring token cost. Five files, no more:
 
 | File | Holds | Re-read on resume |
 |---|---|---|
-| `goal.md` | The real, user-visible outcome the whole wishlist serves (one paragraph) + the Phase 0 verify commands. The thing the Supervisor checks the finished set against. | yes |
+| `goal.md` | The real, user-visible outcome the whole wishlist serves (one paragraph) + the Phase 0 verify commands + the **run config** (see below). The thing the Supervisor checks the finished set against. | yes |
 | `tasks.yaml` | One entry per task: id, outcome, tier, deps, gates, evidence, commit, status, notes. The work queue — and the dependency graph lives here in `deps` (no separate plan file). | yes |
 | `evidence/` | Test logs, run output, screenshots, verifier notes — the proof a task passed. | on demand |
 | `blockers.md` | Quarantined/infeasible features + queued high-severity decisions, with reason and what would unblock. Surfaced in the final report. | yes |
@@ -28,6 +28,20 @@ recurring token cost. Five files, no more:
 
 No `plan.md` (the graph is `tasks.yaml`'s `deps`), no `changelog.md` (git history
 records what changed), no `defects.md` (a failed gate goes in that task's `notes`).
+
+## Run config (recorded once in `goal.md`, never re-asked)
+
+Fix these at kickoff so the loop is deterministic across compaction and resume — the
+Supervisor reads them, it does not re-prompt mid-run:
+
+- **`conductor_model`** — the model the run was started on (the current session
+  model). The loop stays on it; it never auto-escalates to a "strongest available"
+  tier. Subagents run the **same or a cheaper** model — **never a stronger/pricier**
+  one.
+- **`execution_mode`** — `delegated` (default): the conductor fans implementation out
+  to subagents and keeps architecture + taste itself. `solo`: the conductor builds
+  inline — only worth it for a backlog small enough to fit one context, and only if
+  the user asked for it. Default to `delegated`; don't prompt to choose it.
 
 ## `tasks.yaml` shape
 
@@ -83,9 +97,13 @@ A single passing unit test is weak proof. Where the feature warrants it, combine
 - **Executable check** — unit/integration test command that exits non-zero on fail.
 - **Regression check** — the pre-existing suite stays green (catches collateral
   breakage).
-- **Runtime proof** — exercise the actual running behavior, not just the test; record
-  the observation as evidence. Guards against tests that pass while the feature
-  doesn't work.
+- **Runtime proof (required, not optional)** — drive the **real running artifact**
+  through the Phase 0 end-to-end/observation harness and record what it actually did
+  as evidence: a UI feature captures a screenshot / DOM / console state showing it
+  renders and responds; a CLI/service captures real stdout / exit code / HTTP response.
+  Unit tests passing without this is not proof — it is the exact gap that ships blank
+  screens and dead buttons that "pass." If the artifact genuinely can't be driven
+  autonomously, the task is `needs-human-smoke`, never `done`.
 - **Anti-gaming check** — the Verifier diffs the current gate definitions against
   the baseline pinned at Phase 0 (hash/snapshot of the test+lint+CI config and
   existing test files); a weakened, narrowed, deleted, or mocked-out existing gate

@@ -20,11 +20,38 @@ Two things stay yours as conductor: the **loop** (select → build → verify �
 → repeat until done-or-blocked) and the **state ledger on disk** that lets the run
 survive compaction and resume. Everything else, delegate.
 
+**The conductor is the model you started on; delegate sideways or down, never up.**
+Keep the **current session model** in the conductor's seat for the whole run — do
+**not** auto-escalate to a "strongest available" model (that can silently jump to a
+pricier tier the user never chose). The conductor's judgment is the scarce resource,
+so don't spend it typing boilerplate. What is **non-delegable** stays with the
+conductor: the **architecture** (boundaries, where a feature lives, which abstraction
+earns its keep) and the **taste** calls (API shape, UX, naming, what "good" looks
+like). *Implementation* delegates to subagents running the **same or a cheaper/faster
+model — never a stronger or more expensive one** — they build to the spec and plan the
+conductor approved, but they never get to make the architecture or taste call. A
+subagent that hits a genuine design fork records it as a queued decision for the
+conductor (`blockers.md`); it never resolves it inside its worktree. This topology
+holds with no human present, which is why it's a principle and not a prompt. The
+conductor model and execution mode are fixed once at kickoff in `goal.md` (see the
+state ledger), not re-asked mid-run.
+
 **Honest scope.** A strong model already finishes and self-verifies a small,
 in-context build well — there it needs no protocol. This one earns its keep when
 the run is too long or too many-featured to hold in one context, where working
 memory degrades over hours or sessions. Its value is **composition, resumability,
 and a verified stop condition** — not making the model "try harder."
+
+**You must be able to *see* what you built.** Unit tests are necessary and not
+remotely sufficient. An autonomous loop that can only read green unit output will
+confidently ship software it never looked at — the feature "passes" while the app is
+blank, the button does nothing, the layout is broken. So the loop is built around
+**driving the real running artifact end-to-end and observing its actual output**, not
+just asserting on internals. For anything with a UI that means a tool that can render
+it and capture what a user would see (Playwright for web/Electron is the default);
+for a CLI/service/library it means invoking it for real and capturing stdout / exit
+code / HTTP response. Without that capability there is no honest stop condition — so
+the loop **requires it and refuses to run without it** (see Hard rules / Phase 0).
 
 ## When to use
 
@@ -48,6 +75,16 @@ and a verified stop condition** — not making the model "try harder."
 - **The ledger on disk is the source of truth.** Never mark the wishlist complete
   from memory or prose. Re-read the ledger after any compaction before acting.
 - **No executable gates → no feature work.** Ground the repo first (Phase 0).
+- **No way to run and *observe* the real artifact → refuse to run the loop.** Phase 0
+  must establish an **end-to-end harness that drives the running artifact and captures
+  its actual output**, not just unit/lint gates. For anything with a UI, that is a
+  browser/UI automation tool that can capture what renders (screenshots, DOM, console,
+  exit state) — **Playwright is the default for web/Electron**; for a CLI/service/
+  library it is the stack-appropriate equivalent (invoke for real; capture stdout /
+  exit code / HTTP response / generated files). If no such harness exists and one
+  cannot be stood up in Phase 0, **stop and report — do not proceed unit-tests-only.**
+  `needs-human-smoke` is for a genuinely undriveable boundary (a physical device, an
+  irreversible paid side effect), **never** for "we skipped setting up end-to-end QA."
 - **Never weaken, delete, narrow, or mock-out a gate to make it pass.** A gamed
   gate is a failed task. Disabling a check as "production-only" or "just for now" is
   weakening it — the lint / dead-code / duplication / complexity gates run every loop
@@ -66,6 +103,13 @@ and a verified stop condition** — not making the model "try harder."
 - **Subagents act only inside their own worktree.** Never run install/build/test or
   any mutating command against the shared main checkout from a subagent — a stray
   `npm ci`/build in the wrong cwd can wipe the shared tree and break the run mid-flight.
+- **Architecture and taste are the conductor's; subagents only implement.** Keep the
+  current session model as conductor — don't escalate to a "strongest available"
+  model. Delegate implementation to subagents on the **same or a cheaper model, never
+  a stronger/pricier one**. Subagents build to the approved spec/plan; they never
+  decide a boundary, an abstraction, an API shape, or a UX/naming call. A real design
+  fork a subagent hits is queued for the conductor (`blockers.md`), never resolved in
+  the worktree.
 - **Fully autonomous: never call interactive question tools mid-run.** Downstream
   skills run in their non-interactive/autonomous mode — including ones that normally
   ask for approval (e.g. repo hardening): pass them the unattended signal and record
@@ -86,7 +130,7 @@ under-building a FULL one. The "Applies to" column says when each phase runs.
 
 | Phase | What happens | Invoke (Skill tool) | Applies to |
 |---|---|---|---|
-| **0 · Ground** | Ensure deterministic gates, a one-command verify harness, and a security gate. Establish them if missing. | `solidify-repo` | **once per run** |
+| **0 · Ground** | Ensure deterministic gates, a one-command verify harness, a security gate, **and an end-to-end harness that drives and observes the real running artifact** (e.g. Playwright for a web/Electron UI). Establish them if missing; **refuse to proceed if the artifact can't be exercised and observed.** | `solidify-repo` + stand up the e2e/runtime harness | **once per run** |
 | **1 · Spec** | Turn each item into a right-sized, buildable spec. Run **autonomous**; capture its `SPEC / TIER / DECISIONS_NEEDED` handoff. | `feature-spec` | every feature |
 | **1b · Design review** | Fresh-eyes architecture check before building. | `architecture-critic` | **only FULL features that introduce new structure/boundaries** — usually skip |
 | **2 · Plan** | Turn the spec into a step-by-step implementation plan. | `superpowers:writing-plans` | **FULL only** — LITE builds straight from the spec |
@@ -150,6 +194,10 @@ under-building a FULL one. The "Applies to" column says when each phase runs.
   break `main`. Verify after merge, before ff.
 - **Calling mock verification "done."** A preview/mock host can't exercise real
   FS/IPC/PTY paths; mark those `needs-human-smoke`, don't claim them verified.
+- **Treating green unit tests as a working app.** Unit tests assert on internals; they
+  say nothing about whether the thing actually renders, responds, or runs. A loop that
+  never drives and *looks at* the real artifact ships blank screens and dead buttons
+  that "pass." Stand up the end-to-end/observation harness in Phase 0 or don't start.
 - **Leaving verified work uncommitted.** A passing build that was never committed is
   lost the moment the subagent is cut off. Commit is the last build step; the SHA is
   the evidence.
