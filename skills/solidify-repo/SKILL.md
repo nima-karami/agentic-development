@@ -1,6 +1,6 @@
 ---
 name: solidify-repo
-description: Solidify, harden, or prep a repository for human/agent collaboration. Audits a repo against an evidence-based rubric (instruction files, deterministic checks, a one-command verify harness, security gate) and applies fixes with per-category approval. Use when asked to "solidify", "harden", "prep for agents", "make agent-ready", or "audit a repo for AI/human collaboration".
+description: Solidify, harden, or prep a repository for human/agent collaboration. Audits a repo against an evidence-based rubric (instruction files, deterministic checks, a one-command verify harness, security gate, runtime/end-to-end QA) and applies fixes with per-category approval. Use when asked to "solidify", "harden", "prep for agents", "make agent-ready", or "audit a repo for AI/human collaboration".
 allowed-tools: Read, Glob, Grep, Bash, Edit, Write, WebSearch, WebFetch, AskUserQuestion
 ---
 
@@ -35,16 +35,15 @@ its tool *selections* as the default — start from them, don't re-derive the to
 from scratch. But the file is dated. For **each** chosen tool, before installing:
 (1) fetch its **latest stable version** and pin it, and (2) **read the documentation
 for that specific version** — config formats and CLI flags change between releases
-(flat ESLint config, golangci-lint v2's revamped config, Biome's versioned schema
-URL), and installing the newest binary against stale config syntax silently breaks the
-gate. Prefer a documentation-retrieval MCP if one is available (e.g. **Context7**) to
+(linters move to new config formats, major versions revamp their config schema), and
+installing the newest binary against stale config syntax silently breaks the gate. Prefer a documentation-retrieval MCP if one is available (e.g. **Context7**) to
 pull the version's docs; otherwise WebFetch the tool's official docs/changelog for that
 version. WebSearch confirms the version and maintenance status; the version's own docs
 give you the correct config. Never configure a tool from memory of an older release.
 
-## Scope (v1 — the four highest-leverage categories)
+## Scope (v1 — the five highest-leverage categories)
 
-These four are the most strongly evidence-backed, most commonly-gotten-wrong
+These five are the most strongly evidence-backed, most commonly-gotten-wrong
 moves for agent-readiness. Do not silently expand scope beyond them.
 
 1. **Instruction files** — `AGENTS.md` / `CLAUDE.md` / `.cursorrules` etc.
@@ -55,6 +54,12 @@ moves for agent-readiness. Do not silently expand scope beyond them.
    dependency tree for known-vulnerable packages), and **secret scanning** (catches
    committed credentials). These are not interchangeable — SAST never inspects your
    dependencies.
+5. **Runtime QA / end-to-end observation** — a way to launch the real artifact and
+   observe its **actual output**, not just pass unit tests. For an app/service/UI, an
+   end-to-end harness that drives it and captures what it really does; for a pure
+   library, integration/example tests that exercise the public API for real. Unit
+   tests assert on internals — agents pass them while shipping blank screens and dead
+   buttons; this is the layer that catches that.
 
 ## Hard rules
 
@@ -107,7 +112,7 @@ grep -oE '"(test|lint|verify|check|typecheck)"[[:space:]]*:[[:space:]]*"[^"]*"' 
 
 If the tree is dirty, stop and ask the user to commit/stash before applying.
 
-## Step 2 — Audit the four categories
+## Step 2 — Audit the five categories
 
 Score each **Pass / Weak / Missing** with concrete evidence from Step 1.
 
@@ -129,19 +134,29 @@ and returns a clean exit code? Scattered/undocumented commands → **Weak**. Non
 
 **4. Security gate.** Score all **three** layers separately — a repo can have one
 and be missing the others:
-- **SAST** (e.g. Semgrep) — scans your source for vulnerable patterns.
-- **Dependency/supply-chain audit** (e.g. `npm`/`pnpm audit`, OSV-Scanner) — scans
-  your dependency tree against advisory DBs. A SAST pass does **not** cover this; a
-  repo with Semgrep but no dep audit is still **Missing** this layer.
-- **Secret scanning** (e.g. gitleaks) — catches committed credentials.
+- **SAST** — scans your source for vulnerable patterns.
+- **Dependency/supply-chain audit** — scans your dependency tree against advisory DBs.
+  A SAST pass does **not** cover this; a repo with SAST but no dep audit is still
+  **Missing** this layer.
+- **Secret scanning** — catches committed credentials.
 
 Any layer absent → **Weak**; none → **Missing**. This is the highest-risk category:
 agents produce functionally-correct but insecure code, and pull in vulnerable
 packages, far more often than humans — so "tests pass" is not "safe".
 
+**5. Runtime QA / end-to-end observation.** Can the repo's real artifact be run and
+its **actual output observed**, or does "passing" mean only unit tests? Look for an
+e2e/UI harness, integration tests that exercise the running thing, or smoke scripts
+that capture real output. Unit tests only (they assert internals, not that the
+artifact works) → **Weak**. Nothing runnable/observable end-to-end → **Missing**. A
+pure library with integration tests over its public API → **Pass** — don't expect a
+browser harness where there's no UI; match the artifact. Agents routinely ship a
+green build that renders a blank screen or a dead button, which is exactly what this
+layer is for.
+
 ## Step 3 — Write the report
 
-Write the report as a table of the four categories with score + evidence + the
+Write the report as a table of the five categories with score + evidence + the
 specific change you propose for each — the artifact the user reviews before any edits.
 Place it at `solidify-report.md` in the repo root, **unless the repo already has a
 docs convention** for run artifacts (e.g. a `docs/runs/<date>-<name>/` layout), in
@@ -167,19 +182,30 @@ get apply/skip, then apply only the approved ones:
    duplication threshold (AI-generated code clones heavily), where supported.
 3. **Verify harness** → create or normalize **one** entry point (`make verify`,
    `npm run verify`, or a `justfile` recipe) that runs format-check + lint +
-   typecheck + tests + duplication + **security (all three layers below)**, exiting
-   non-zero on any failure. Wire it as the CI gate.
+   typecheck + tests + duplication + **security (all three layers below)** +
+   **runtime/end-to-end checks (category 5, where the repo has a runnable artifact)**,
+   exiting non-zero on any failure. Wire it as the CI gate.
 4. **Security gate** → add **all three** layers, taking the stack's picks from
    `references/tooling-2026.md` (pin each to its latest version and read that version's
    docs, per Hard rules), and include each in the `verify` harness:
-   - **SAST** — Semgrep is a strong language-agnostic default. It's the slowest
+   - **SAST** — take the stack's pick from the reference. It's typically the slowest
      layer, so running it in **CI only** (while the fast dep-audit + secret-scan stay
      in the local `verify`) is a fine speed tradeoff — as long as it still gates merges.
-   - **Dependency/supply-chain audit** — the stack's native auditor (`npm`/`pnpm
-     audit` for JS/TS, `pip-audit`, `govulncheck`, `cargo-audit`, etc.) plus
-     OSV-Scanner as a cross-stack baseline. **Do not skip this thinking SAST covers
-     it — it does not.**
-   - **Secret scanning** — gitleaks (pre-commit + CI diff).
+   - **Dependency/supply-chain audit** — the stack's native auditor plus a cross-stack
+     scanner, both from the reference. **Do not skip this thinking SAST covers it — it
+     does not.**
+   - **Secret scanning** — the reference's pick (pre-commit + CI diff).
+5. **Runtime QA / end-to-end observation** → give the repo a way to drive the real
+   artifact and capture its actual output, and wire it into `verify` (or a CI job if
+   it's slow). Take the e2e/UI-driver pick for the stack from
+   `references/tooling-2026.md` (pin the latest version and read that version's docs,
+   per Hard rules; if the reference has no e2e pick for the stack, WebSearch the
+   current standard). For a UI, capture a screenshot/DOM dump as observable evidence
+   where the tool supports it; for a service/CLI, an integration/smoke test that
+   invokes it for real and asserts on stdout / exit code / HTTP response; for a pure
+   library, integration tests over the public API. Keep it a **thin real-exercise
+   layer** that proves the artifact runs — not an exhaustive E2E suite this skill
+   isn't scoped to author — and don't add a UI harness to a repo with no UI.
 
 ## Step 5 — Self-verify
 
@@ -211,11 +237,18 @@ happened. One short file: Context / Decision / Consequences.
   size/line checks. `wc -l` is reliable; trust it over `grep -c`.
 - **Don't add ports/adapters/hexagonal layering here.** That's tempting "agent
   readiness" theater and out of v1 scope — it adds files without earning their
-  keep on most repos. Stick to the four categories.
+  keep on most repos. Stick to the five categories.
+- **Green unit tests are not "the artifact works."** Unit tests assert on internals;
+  an app can pass every one and still render a blank screen or a dead button. Category
+  5 exists because agents (and humans) ship code they never actually ran. But match
+  the artifact — a library wants integration tests over its public API, not a browser;
+  a service wants a real invocation asserting on its response. Don't stand up a UI
+  harness where there's nothing to drive, and keep it thin — proving it runs, not an
+  exhaustive E2E suite.
 - **"I added SAST, so security is done" is the trap.** SAST scans your code;
-  it is blind to your dependencies. A repo with Semgrep but no `npm audit`/OSV-Scanner
-  is wide open to a vulnerable or malicious package, and a repo with both but no
-  gitleaks can still leak a committed key. The security gate is **not** satisfied
+  it is blind to your dependencies. A repo with SAST but no dependency audit is wide
+  open to a vulnerable or malicious package, and a repo with both but no secret
+  scanning can still leak a committed key. The security gate is **not** satisfied
   until all three layers — SAST, dependency/supply-chain audit, and secret scanning —
   are wired into the harness. Treating any one as "security" is a partial gate.
 - **The skill is the methodology; there is no bundled driver.** A language-agnostic

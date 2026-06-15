@@ -42,9 +42,9 @@ convention if it has one; otherwise default to:
   lint/security gates and a verify command — it does **not** by itself give you a way
   to drive and *watch* the running artifact. The conductor must ensure one exists: for
   a UI, a browser/UI automation tool that can launch the app and capture what renders
-  (screenshots, DOM, console, exit state) — **Playwright is the default for web/
-  Electron**; for a CLI/service/library, invoke it for real and capture stdout / exit
-  code / HTTP response / generated files. Wire this harness into the verify chain so
+  (screenshots, DOM, console, exit state); for a CLI/service/library, invoke it for
+  real and capture stdout / exit code / HTTP response / generated files. The concrete
+  tool comes from `solidify-repo`'s tooling reference. Wire this harness into the verify chain so
   Phase 5 can produce observation evidence, not just unit results.
 - **Gate (hard refusal):** after this phase the repo must have both (a) runnable
   deterministic checks and (b) a way to run and observe the real artifact end-to-end.

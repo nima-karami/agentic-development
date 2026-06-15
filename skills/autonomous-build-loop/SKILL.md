@@ -48,10 +48,10 @@ confidently ship software it never looked at — the feature "passes" while the 
 blank, the button does nothing, the layout is broken. So the loop is built around
 **driving the real running artifact end-to-end and observing its actual output**, not
 just asserting on internals. For anything with a UI that means a tool that can render
-it and capture what a user would see (Playwright for web/Electron is the default);
-for a CLI/service/library it means invoking it for real and capturing stdout / exit
-code / HTTP response. Without that capability there is no honest stop condition — so
-the loop **requires it and refuses to run without it** (see Hard rules / Phase 0).
+it and capture what a user would see; for a CLI/service/library it means invoking it
+for real and capturing stdout / exit code / HTTP response. Without that capability
+there is no honest stop condition — so the loop **requires it and refuses to run
+without it** (see Hard rules / Phase 0).
 
 ## When to use
 
@@ -79,9 +79,10 @@ the loop **requires it and refuses to run without it** (see Hard rules / Phase 0
   must establish an **end-to-end harness that drives the running artifact and captures
   its actual output**, not just unit/lint gates. For anything with a UI, that is a
   browser/UI automation tool that can capture what renders (screenshots, DOM, console,
-  exit state) — **Playwright is the default for web/Electron**; for a CLI/service/
-  library it is the stack-appropriate equivalent (invoke for real; capture stdout /
-  exit code / HTTP response / generated files). If no such harness exists and one
+  exit state); for a CLI/service/library it is the stack-appropriate equivalent (invoke
+  for real; capture stdout / exit code / HTTP response / generated files). Phase 0
+  establishes the concrete tool via `solidify-repo` and its tooling reference. If no
+  such harness exists and one
   cannot be stood up in Phase 0, **stop and report — do not proceed unit-tests-only.**
   `needs-human-smoke` is for a genuinely undriveable boundary (a physical device, an
   irreversible paid side effect), **never** for "we skipped setting up end-to-end QA."
@@ -130,7 +131,7 @@ under-building a FULL one. The "Applies to" column says when each phase runs.
 
 | Phase | What happens | Invoke (Skill tool) | Applies to |
 |---|---|---|---|
-| **0 · Ground** | Ensure deterministic gates, a one-command verify harness, a security gate, **and an end-to-end harness that drives and observes the real running artifact** (e.g. Playwright for a web/Electron UI). Establish them if missing; **refuse to proceed if the artifact can't be exercised and observed.** | `solidify-repo` + stand up the e2e/runtime harness | **once per run** |
+| **0 · Ground** | Ensure deterministic gates, a one-command verify harness, a security gate, **and an end-to-end harness that drives and observes the real running artifact**. Establish them if missing; **refuse to proceed if the artifact can't be exercised and observed.** | `solidify-repo` + stand up the e2e/runtime harness | **once per run** |
 | **1 · Spec** | Turn each item into a right-sized, buildable spec. Run **autonomous**; capture its `SPEC / TIER / DECISIONS_NEEDED` handoff. | `feature-spec` | every feature |
 | **1b · Design review** | Fresh-eyes architecture check before building. | `architecture-critic` | **only FULL features that introduce new structure/boundaries** — usually skip |
 | **2 · Plan** | Turn the spec into a step-by-step implementation plan. | `superpowers:writing-plans` | **FULL only** — LITE builds straight from the spec |

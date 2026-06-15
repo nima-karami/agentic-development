@@ -19,6 +19,7 @@ Selection priority (in order): active maintenance & release recency > adoption >
 | Secret scan | gitleaks (+TruffleHog CI) | gitleaks | gitleaks | gitleaks | gitleaks | gitleaks | gitleaks |
 | Dep/supply-chain | npm/pnpm audit + OSV-Scanner | pip-audit / uv | govulncheck + OSV | cargo-audit / cargo-deny | OWASP dependency-check / OSV | bundler-audit | composer audit |
 | Pre-commit | Lefthook (or Husky+lint-staged) | pre-commit | Lefthook | Lefthook | Lefthook/pre-commit | Lefthook/Overcommit | Lefthook |
+| E2E / runtime QA | Playwright (+ supertest API) | Playwright (pytest-playwright); Schemathesis (API) | chromedp / Playwright-go; httptest (API) | Playwright (JS) / fantoccini; reqwest+insta | Playwright-Java / REST Assured (API) | Capybara+Selenium / playwright-ruby; rack-test | Laravel Dusk / Playwright; Pest feature (API) |
 
 ---
 
@@ -383,6 +384,43 @@ LLM-generated code duplicates heavily, so clone detection belongs in any AI-coll
 
 - **Default:** jscpd as the cross-stack CLI; PMD CPD where PMD is already in the JVM build; fallow for JS/TS repos wanting one consolidated dead-code+dupes+complexity pass. **Note:** these are token/structural (Type-1/2/3) detectors; Type-4 semantic clones need heavier tools (CloneDR, Coverity) and are rarely worth it outside safety-critical code. Zero duplication is not the target — gate on a sane threshold (e.g., 3-5%).
 
+### End-to-end / runtime QA (NEW category)
+*(e2e section verified 2026-06-15.)* Unit tests assert on internals; they never prove the artifact actually runs and produces the right observable output. Agents routinely ship a green build that renders a blank screen, a dead button, or a 500. Pick by **artifact type**, not backend language — the web-UI driver is the same whether the backend is Python or Go.
+
+**Web UI (any backend):**
+| Tool | Why | Status |
+|---|---|---|
+| **Playwright** | Cross-stack default. Out-of-process (multi-tab/origin), parallel for free on any CI, official bindings for **JS/TS, Python, Java, .NET**, Trace Viewer, built-in `toHaveScreenshot()` visual snapshots. Clean non-zero exit + deterministic, machine-readable output → agent-friendly. Default for web **and Electron**. | v1.60.0 (May 2026); ~33M wk npm downloads, ~45% adoption, surpassed Cypress mid-2024 |
+| **Cypress** | Best interactive debugging/DX for frontend-heavy apps. In-browser architecture limits multi-tab/cross-origin; parallelization needs paid Cloud (can exceed ~$30k/yr at large scale). | Maintained; ~6.5M wk downloads |
+| **WebdriverIO** | W3C WebDriver; strong for cross-browser + mobile-web on real-device grids. | Maintained |
+
+- **Avoid / legacy:** raw **Selenium WebDriver** for greenfield (older sync model; keep only for existing Selenium grids); **Puppeteer** for cross-browser E2E (Chrome-centric — fine for scraping/Chrome-only flows).
+- **Visual regression** (catches "looks broken" that assertions miss): **Playwright `toHaveScreenshot()`** (built-in, baselines in git) is the default; **Chromatic** (Storybook-native — each story becomes a visual test; hosted parallel fleet) for component libraries; **Percy** (multi-framework, BrowserStack dashboard, cross-browser) when you want a hosted review UI.
+- **Component testing:** Storybook + test runner, or Playwright component testing — exercise components in a real browser without booting the full app. Use for design systems.
+
+**Mobile:**
+- **Maestro** — fastest setup, YAML flows, low flakiness, cross-platform (iOS/Android/RN/Flutter/web). Default for most apps.
+- **Detox** — gray-box, lowest flakiness for **React Native**; pick for pure RN.
+- **Appium** — native depth, any language, Selenium-style; pick for deep native needs or existing Selenium infra. Heaviest setup/maintenance.
+
+**API / service (no UI, or the backend of one):**
+- **In-process integration** (fastest — drive the app's HTTP layer in-memory): JS/TS → **supertest**; Python → **httpx/requests + pytest** (or the Django/Flask test client); Go → **net/http/httptest**; JVM → **REST Assured / MockMvc**; Ruby → **rack-test**; PHP → **Pest/PHPUnit feature tests** (Laravel HTTP tests).
+- **Schemathesis** — language-agnostic: generates property-based cases from the OpenAPI/GraphQL spec and finds boundary/type/constraint edge cases the happy path misses. Run against the running service.
+- **Pact** — consumer-driven **contract** testing across services; add early in microservices to catch integration breaks before deploy. Cross-language.
+- **k6** — load/perf + smoke, scriptable in JS, strong Grafana ecosystem, runs in CI. **Karate** bundles API + BDD + contract. Dev/manual exploration: **Bruno** or **Hoppscotch** (open-source, git-friendly Postman alternatives).
+
+**CLI:**
+- **bats-core** — Bash Automated Testing System, TAP-compliant; drives the real binary and asserts stdout/exit. Language-agnostic (it just runs commands). Default for CLI E2E.
+- **expect / pexpect** (Python) — for interactive/PTY prompts. **cli-testing-library** (npm) — framework-agnostic input simulation.
+- Native: invoke the built binary in the language's test framework and **snapshot the output** — `insta` (Rust), `syrupy` (Python), jest/vitest snapshots (JS).
+
+**Library (no runnable artifact):** integration/example tests that exercise the **public API** for real (not internals) + snapshot tests of outputs. No browser/UI harness — match the artifact.
+
+**Wiring & evidence:**
+- Put fast checks (in-process API/integration, CLI) in the local `verify`; keep slow full-browser/mobile E2E in **CI** — still gating merges.
+- Capture **observable evidence** a human or agent can inspect: Playwright trace + screenshot baselines, captured stdout/exit, HTTP response snapshots.
+- Keep it a **thin real-exercise layer** that proves the artifact runs (smoke + critical paths), not an exhaustive E2E suite.
+
 ### Pre-commit frameworks (pick one default per ecosystem)
 | Framework | Lang | Strengths | Default for |
 |---|---|---|---|
@@ -435,3 +473,4 @@ LLM-generated code duplicates heavily, so clone detection belongs in any AI-coll
 4. **One `just verify` entry point** chaining format→lint→typecheck→test→dupes→security with non-zero exit is the agent-friendly contract.
 5. **Pin CI actions to commit SHAs, not tags.** The Trivy supply-chain compromise (GHSA-69fq-xp46-6x23 / CVE-2026-33634, CVSS 9.4, Mar 19 2026) saw 76 of 77 `aquasecurity/trivy-action` tags force-pushed to credential-stealing payloads over ~12 hours — only the GitHub-immutable release was unaffected. Treat any tool/action referenced by mutable tag as a supply-chain risk.
 6. **Treat brand-new tools (fallow, ty, Betterleaks) as candidates, not settled defaults** — verify each tool's release page before relying on the versions here.
+7. **Runtime QA is a first-class category.** Green unit tests don't prove the artifact runs — drive the real thing and observe its output (Playwright for web/Electron, the stack's in-process integration for APIs, bats-core for CLIs) and capture evidence. Pick by artifact type, not backend language.
