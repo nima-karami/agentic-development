@@ -1,0 +1,225 @@
+# **Domain-General Workflows for Artificial Creativity: Cross-Domain Analogical Transfer in LLM Agents**
+
+## **The 2026 State of the Art in Computational Creativity**
+
+The integration of Large Language Models (LLMs) into creative and design workflows has precipitated a paradigm shift in how artificial creativity is quantified, evaluated, and engineered. By 2026, a rigorous benchmarking ecosystem has established a nuanced reality regarding the creative capabilities of generative architectures. In landmark studies evaluating over 100,000 human subjects against state-of-the-art generative models using the Divergent Association Task (DAT), researchers confirmed that LLMs reliably excel at generating semantically distant word associations, effectively outperforming the statistical mean of human subjects1. However, this apparent superiority is fundamentally bounded; the top tier of human creators exhibits an "associative horizon" that remains distinctively beyond the reach of baseline statistical generation1.  
+This ceiling effect is characterized by the "creativity paradox" of generative AI: while access to LLMs enhances individual baseline creativity, particularly among novices, it simultaneously reduces the collective diversity of novel content, driving a macro-level homogenization of ideas5. Current literature identifies this phenomenon as a symptom of structural design fixation inherent to the models7. Frameworks such as IDEAFix and AidanBench demonstrate that generative AI systems frequently anchor on early, within-domain examples and struggle to escape conventional cognitive pathways as task complexity increases9. The evaluation of model creativity has subsequently evolved from simple divergent tasks to complex, context-aware metrics. The Conditional Divergent Association Task (CDAT), for instance, separates genuine creativity from stochastic noise by measuring novelty strictly conditional on contextual appropriateness11. Furthermore, the SciAidanBench framework highlights the "jaggedness" of AI creativity, revealing that models require iterative, multi-step generation loops paired with strict semantic distance thresholds to sustain creative output over time10.  
+To overcome the structural limitations of language models, computational creativity research has pivoted from relying on zero-shot inference toward designing highly structured, iterative agentic loops. These workflows artificially synthesize the cognitive mechanics of human innovation—specifically, cross-domain analogical transfer, conceptual blending, and deliberate defixation13. By manipulating decoding strategies, injecting aleatory constraints, and forcing conceptual collisions across unrelated domains, it is possible to construct a domain-agnostic engine that reliably forces LLMs out of their probabilistic comfort zones to produce genuinely novel, paradigm-shifting concepts16.
+
+## **The Cognitive Science of Artificial Ideation**
+
+Understanding how to engineer artificial creativity requires aligning the cognitive science of human ideation with the statistical realities of LLM text generation. The human creative process is broadly categorized into divergent thinking—the expansive generation of multiple, varied solutions to an open-ended problem—and convergent thinking—the synthesis, evaluation, and refinement of those solutions against real-world constraints9.
+
+### **Design Fixation and the Triadic Dual-Process Model**
+
+A primary barrier to divergent thinking is "design fixation," defined as the unconscious adherence to familiar patterns, precedents, and prior knowledge that prematurely restricts the exploration of a solution space7. In cognitive psychology, the triadic dual-process model provides a framework for understanding this phenomenon. Fixation is hypothesized to arise from the intuitive, effortless operations of System 1, which heavily favors the "path of least resistance" by retrieving the most common associative responses19. Overcoming this fixation requires the activation of System 3 (cognitive control) to actively inhibit the first intuitive response and force the consideration of alternative pathways19.  
+In the context of LLMs, System 1 thinking is mathematically baked into the generation process. When an agent is prompted with a specific domain (e.g., "design a residential building"), the attention mechanism heavily weights the tokens associated with conventional architecture, effectively exploring only the immediate semantic neighborhood of the prompt9. If the agent is provided with early, in-domain examples to stimulate ideation, this intervention frequently backfires. Exposure to same-domain precedents triggers severe design fixation, as the model anchors onto the statistical weight of the provided examples, leading to a stark reduction in the variety and originality of the output5. The model's associative horizon collapses inward4.
+
+### **Bisociation and Conceptual Blending**
+
+True creativity rarely arises from linear extrapolation within a single domain; rather, it is the product of structural collision. Arthur Koestler formulated this as "bisociation": the intersection of two independent, habitually incompatible matrices of thought to produce an emergent third structure21. Gilles Fauconnier and Mark Turner expanded upon this concept with the theory of "conceptual blending," modeling how elements and vital relations from diverse mental spaces are dynamically mapped and integrated into a novel conceptual network4.  
+In a successful conceptual blend, the target space (the problem domain) and the source space (an unrelated domain) are projected into a blended space. Crucially, the resulting blend contains emergent structures and logic that exist in neither of the parent domains independently22. For an AI agent to achieve genuine novelty, it cannot merely be instructed to act creatively. It must be procedurally forced to execute a bisociative maneuver: it must retrieve a cognitive matrix from a far-domain, map its underlying structural relationships to the target problem, and generate the emergent blend.
+
+### **The Role of Incubation in Computational Workflows**
+
+In human cognitive science, "incubation" refers to a period of subconscious processing during which an individual temporarily disengages from conscious problem-solving, allowing the brain to break restrictive associative patterns and form novel connections. For an LLM, standard continuous generation mimics obsessive, fixated thought, as the context window becomes increasingly saturated with the model's own immediate outputs.  
+To simulate incubation computationally, an agentic workflow must deliberately break the context cycle. This is achieved through latent space resetting: clearing the immediate prompt history, shifting the agent to an orthogonal or highly abstracted task (e.g., analyzing the properties of a random biological mechanism without reference to the original design brief), and only reintroducing the primary problem after the context window has been populated with distant semantic activations. The evidence indicates that this manufactured incubation phase prevents the attention mechanism from over-indexing on its initial generative pathways, significantly raising the novelty of subsequent outputs.
+
+## **The Mechanics of LLM Homogenization and Algorithmic Mitigations**
+
+The default generic nature of LLM outputs is a direct consequence of their training and decoding paradigms. Because models are trained to minimize perplexity, they inherently sample toward the center of their training distribution, generating the most statistically probable sequence of tokens24. This results in a phenomenon known as mode collapse or regression to the mean, where the vast diversity of potential concepts is flattened into conventional, majoritarian consensus24. Post-training alignment techniques, such as Reinforcement Learning from Human Feedback (RLHF), exacerbate this issue by explicitly penalizing heterodox or surprising responses in favor of safe, predictable outputs24.  
+Furthermore, standard generation workflows entirely lack a dedicated divergence phase. Without explicit structural intervention, LLMs generate a single-shot response that anchors heavily on the domain specified in the prompt, rendering genuine exploration impossible9. Mitigating this homogenization requires overriding the default decoding and sampling behaviors of the model.
+
+### **Diverse and High-Variance Sampling**
+
+Standard modal decoding strategies (e.g., greedy decoding or low-temperature top-p sampling) systematically ignore the long tail of human knowledge encoded within the model's parameters24. Adjusting hyperparameters is the first line of defense; increasing the temperature introduces controlled stochasticity, allowing the model to sample lower-probability tokens and establish less obvious associations1. However, high temperature alone often degrades coherence, turning semantic distance into mere noise.
+
+### **Recoding-Decoding and Positional Disruption**
+
+A more precise mitigation strategy is the Recoding-Decoding (RD) algorithm developed by Gary King et al., which induces sustained creativity without requiring internal weight modifications or fine-tuning16. The RD approach introduces controlled randomness by injecting random priming phrases (e.g., "Related to GEOLOGY") and inserting random three-letter diverting tokens at the start of new sentences16. Because LLM attention mechanisms are highly sensitive to positional bias—paying the most attention to tokens at the beginning of a sequence—these diverting tokens force the model to continuously re-evaluate its trajectory, steering generation toward less traversed but still meaningful regions of the latent space16.
+
+### **Constraint Injection and Cliché Forbidding**
+
+Because LLMs are trained on vast corpora of human culture, they possess a near-perfect map of cultural clichés and industry tropes. Effective agentic workflows harness this capability through a "name the cliché then forbid it" self-critique loop. Before ideation begins, an agent is explicitly prompted to generate the most obvious, stereotypical solutions to the brief. These outputs are immediately captured and injected into the primary generation prompt as strict negative constraints. By forbidding the model from exploring the most probable paths, the agent is mathematically forced to sample from deeper, less accessible regions of the semantic space.
+
+## **Cross-Domain Analogical Transfer as the Primary Engine**
+
+The centerpiece of a domain-general artificial creativity workflow is Design-by-Analogy (DbA), operationalized as a rigorous cross-domain transfer. DbA leverages analogical reasoning to expand the concept space by retrieving inspiration from contexts that have solved structurally similar problems, thereby shifting the agent from an uninspired internal search to an expansive external search5.
+
+### **The Theory of Analogical Distance**
+
+The efficacy of analogical transfer is governed by "analogical distance"—the conceptual proximity between the target domain and the source domain15.  
+The analogical spectrum is generally divided into near and far analogies. Near analogies involve source domains that share the same product category, industry, or immediate context as the target15. For example, a designer attempting to innovate a bicycle might look at a motorcycle. Research demonstrates that near analogies heavily activate memory retrieval related to feasibility and usefulness, making them highly practical, but they rarely produce high novelty or paradigm-shifting ideas15.  
+Conversely, far analogies draw upon source domains from entirely disparate fields15. For instance, a software architect designing a distributed database might study the fluid dynamics of river delta systems. Empirical studies indicate that far-field analogies correlate strongly with high novelty, uniqueness, and the generation of breakthrough concepts15.
+
+### **The Novelty vs. Feasibility Tradeoff**
+
+There is an inherent tradeoff in Design-by-Analogy: as analogical distance increases, the potential for novelty increases proportionally, but the immediate feasibility and coherence of the resulting concept often decrease15. When human designers attempt far analogies, they frequently experience cognitive overload, failing to map the disparate structures effectively or dismissing the far stimulus as irrelevant noise28.  
+LLM agents possess a unique advantage in managing this tradeoff. They can hold vast amounts of cross-disciplinary information in context and map complex structural relationships rapidly. However, to prevent a far analogy from resulting in a superficial, absurd mapping, the agent must be procedurally forced to abstract the problem into functional, domain-agnostic verbs before bridging.
+
+### **Forcing a Rigorous Bridge over Superficial Mapping**
+
+The failure state of analogical prompting in LLMs is superficial aesthetic mapping. If instructed to "design a residential building inspired by a cello," a weakly prompted model will design a building shaped like a cello or painted brown. This is a failure of structural rigor.  
+Rigorous bridging requires the agent to isolate the core operating mechanisms of the source domain. The agent must be instructed to extract the verbs and physical/systemic laws of the source domain, rather than the nouns. Applying the biological mechanisms of a leaf to a solar panel requires mapping the structural mechanism of phototropism (dynamic orientation toward energy sources) and cellular layering, not merely adopting the color green5.
+
+### **Determining How Far is "Too Far"**
+
+The boundary of effective analogical transfer is reached when the target and source domains share absolutely no abstract functional overlap, rendering structural mapping impossible. When an analogy is pushed "too far," the LLM outputs stochastic noise that fails the criteria of usefulness. Current computational metrics, such as the Conditional Divergent Association Task (CDAT), penalize this by separating genuine creativity from randomness, requiring that the output maintain contextual appropriateness regardless of semantic distance11. A domain-agnostic agent avoids the "too far" trap by relying on a strict functional abstraction phase prior to domain selection; as long as the source domain contains a system that processes inputs, outputs, or physical forces, a rigorous bridge can theoretically be constructed.
+
+## **The Technique Catalog: Agentic Divergence Procedures**
+
+To operationalize these cognitive theories, classic divergent ideation methodologies must be translated into strict, programmatic prompt patterns for autonomous agents. The following catalog maps established techniques to concrete agent procedures, ensuring they can be deployed seamlessly within an LLM workflow.
+
+| Ideation Technique | Theoretical Basis | Concrete Agent Procedure & Prompt Pattern | Optimal Use Cases |
+| :---- | :---- | :---- | :---- |
+| **Forced Association / Random-Entry** | Breaking associative chains by introducing a truly random, unrelated semantic anchor to force lateral connections. | **Pattern:** "1. Retrieve a random noun from an unrelated dictionary (e.g., 'Velvet'). 2\. List the core physical, emotional, and structural attributes of \[Random Noun\]. 3\. Force a connection between each attribute and the functional requirements of \[Target Brief\]. 4\. Generate 5 concepts derived from these forced connections." | Overcoming initial blank-page syndrome; highly effective for brand naming, marketing hooks, and aesthetic conceptualization. |
+| **Bisociation & Conceptual Blending** | Merging two distinct cognitive matrices into an emergent third structure containing logic from both21. | **Pattern:** "1. Analyze Target Domain \[A\] and extract its core functional nodes. 2\. Analyze Source Domain \[B\] and extract its core structural rules. 3\. Map the rules of \[B\] onto the nodes of \[A\]. 4\. Output a new concept where \[A\] operates entirely under the physical/social laws of \[B\]." | Foundational paradigm shifts; ideal for core brand identity, architectural philosophy, or novel game mechanics. |
+| **Lateral Thinking (de Bono)** | Utilizing a Provocation Operation (PO) to deliberately suspend judgment and step outside linear reasoning logic. | **Pattern:** "1. State a fundamental, unquestionable assumption about \[Target Brief\] (e.g., 'Restaurants require menus'). 2\. Generate a Provocation (PO) that mathematically reverses or exaggerates this assumption (e.g., 'PO: The restaurant dictates what you eat based on your biometrics'). 3\. Use the PO as a stepping stone to generate a viable, realistic concept." | Disrupting stagnant industries; service design, business model innovation, and process engineering. |
+| **SCAMPER** | Structured provocation (Substitute, Combine, Adapt, Modify, Put to another use, Eliminate, Rearrange)31. | **Pattern:** "Deconstruct \[Product\] into its 5 fundamental components. Apply the SCAMPER methodology systematically to each component. Output a matrix showing the original component, the applied SCAMPER verb, and the resulting mutated feature. Discard any mutations that resemble existing market competitors." | Iterating on existing physical products, established software flows, or UI feature sets to discover novel variations. |
+| **Oblique Strategies (Aleatory Constraints)** | Using random, cryptic, or disruptive instructions to break linear reasoning and force lateral traversal17. | **Pattern:** "Input: \[Current concept\]. 1\. Retrieve a random abstract constraint from the Oblique Strategies matrix (e.g., 'Honor thy error as a hidden intention', 'Use an unacceptable color'). 2\. Radically mutate the current concept to satisfy this constraint. 3\. Justify how this mutation solves the original brief." | When the agent begins looping on similar variations (mode collapse); excellent for UI aesthetics, creative writing, and music. |
+| **Morphological Analysis** | Decomposing a problem into orthogonal dimensions and forcing exhaustive combinatorial evaluation33. | **Pattern:** "1. Identify 5 orthogonal parameters of \[Task\]. 2\. Generate 5 extreme, non-standard variables for each parameter. 3\. Randomly select one variable from each parameter to form a matrix. 4\. Synthesize a coherent product/solution that integrates these 5 forced variables without compromise." | Highly effective for product naming, API architecture design, and complex system engineering where parameters are distinct. |
+| **Biomimicry / Nature-Inspired Design** | Leveraging evolutionary biology as a database of optimized structural solutions5. | **Pattern:** "1. Abstract the core functional requirement of \[Task\] into a verb (e.g., 'regulate temperature'). 2\. Search the biological domain for organisms that solve this exact functional requirement under extreme conditions. 3\. Extract the biological mechanism. 4\. Map the physical properties of this mechanism back to the synthetic materials of \[Task\]." | Physical engineering, sustainable architecture, materials science, and logistical routing optimization problems. |
+| **James Webb Young's Idea Method** | A five-step sequential process relying heavily on information gathering followed by subconscious incubation. | **Pattern:** "1. (Gather) Scrape 20 diverse facts regarding \[Target\]. 2\. (Digest) Synthesize facts into 5 contradictory pairs. 3\. (Incubate) CLEAR CONTEXT. Analyze a random Wikipedia article on astronomy. 4\. (Eureka) Reintroduce the 5 contradictory pairs and force a sudden resolution. 5\. (Shape) Refine the resolution into a practical concept." | Complex strategic campaigns, brand storytelling, and long-term narrative generation requiring depth. |
+| **TRIZ (Theory of Inventive Problem Solving)** | Resolving systemic contradictions without compromise through universal inventive principles35. | **Pattern:** "1. Identify the primary technical contradiction in \[Task\] (Parameter A improves, but Parameter B worsens). 2\. Map this contradiction to the 39x39 TRIZ contradiction matrix. 3\. Select the top 3 inventive principles recommended. 4\. Apply these principles to generate concepts that eliminate the tradeoff entirely rather than compromising." | Hardware engineering, physical product design, materials science, and deep technical systems where constraints appear mutually exclusive. |
+
+## **The Recommended Iterative Creativity Loop**
+
+To generate genuinely novel concepts for any design task, the system must utilize a multi-agent architecture that orchestrates the cognitive sequence of divergence, cross-domain raiding, and convergent critique. The architecture of SciAidanBench demonstrates that relying on one-shot generation inevitably results in reversion to the mean; instead, an iterative loop characterized by multi-candidate generation, explicit evaluation thresholds, and continuous semantic shifting is required10.  
+The following domain-agnostic loop is designed to be tight, inexpensive, and computationally rigorous.
+
+### **Phase 1: Decontextualization and Cliché Mapping (The Diverge Prep)**
+
+Before generating solutions, the system must inoculate itself against the center of its own training distribution to actively prevent design fixation.
+
+* **Step 1.1: Functional Abstraction.** The primary agent receives the user's brief and is instructed to strip away all domain-specific nouns, reducing the problem entirely to its structural and functional verbs. (For example, a brief for a "restaurant brand" is abstracted to "a communal system for caloric intake, sensory pacing, and social signaling").  
+* **Step 1.2: The Cliché Predictor.** The agent is prompted to generate the ten most obvious, stereotypical solutions to the brief. These concepts are captured and explicitly added to a "Negative Constraint Vector," effectively cordoning off the most statistically probable regions of the latent space.
+
+### **Phase 2: The Cross-Domain Raid (The Engine)**
+
+The system deliberately reaches into domains with high analogical distance to gather source material for bisociation.
+
+* **Step 2.1: Aleatory Domain Selection.** The agent utilizes a randomizer to select three entirely unrelated academic, scientific, or cultural domains from a pre-defined matrix (e.g., Plate Tectonics, 17th Century Maritime Law, Fungal Mycelium Networks).  
+* **Step 2.2: Structural Extraction.** For each selected far-domain, the agent analyzes the subject and extracts the core operating principles, hierarchies, and mechanisms. The prompt explicitly instructs the agent to ignore aesthetics and focus purely on systemic rules.
+
+### **Phase 3: Bisociative Generation (The Bridge)**
+
+This is the phase where high-variance sampling (e.g., using the Recoding-Decoding method or elevated temperature settings) is deployed to construct the emergent blend1.
+
+* **Step 3.1: Forced Mapping.** The agent takes the functional abstraction (from Step 1.1) and forces it to operate exclusively under the rules of the far-domains (from Step 2.2).  
+* **Step 3.2: Multi-Candidate Ideation.** The system generates a high volume of candidates (e.g., 15–20 initial concepts) in a rapid burst. The prompt strictly forbids the inclusion of any concepts or aesthetic tropes listed in the Negative Constraint Vector (from Step 1.2).
+
+### **Phase 4: Distinctiveness Pruning and Critique**
+
+A secondary, independent evaluator agent acts as the convergent filter. Separating generation from evaluation is critical to preventing the model from grading its own safe outputs highly10.
+
+* **Step 4.1: Semantic Entropy Check.** Utilizing a fast embedding model (e.g., text-embedding-3-large), the system calculates the cosine distance between all generated candidates and the initial brief's baseline embedding. Any candidate with a semantic distance below a strict threshold (e.g., \< 0.15) is instantly pruned, ensuring only distant, non-redundant ideas survive12.  
+* **Step 4.2: Rubric Evaluation.** The surviving candidates are passed to the LLM judge, which scores them against the Domain-Agnostic Distinctiveness Rubric. The top three highest-scoring candidates are selected to proceed.
+
+### **Phase 5: Convergent Synthesis (The Feasibility Check)**
+
+Far-analogies often result in structural impossibilities or excessive abstraction. The final step bridges the conceptual leap back to reality, ensuring the output is actionable15.
+
+* **Step 5.1: The Precedent Bridge.** For each of the top three concepts, the agent is tasked with translating the abstract conceptual blend into the specific, practical vocabulary of the original brief. This involves grounding the theory in current technology or market realities.  
+* **Step 5.2: Output Formatting.** The system presents the final concepts, providing the cross-domain origin story, the structural logic, and practical implementation steps.
+
+## **The Domain-Agnostic Distinctiveness Rubric**
+
+To automate the convergent critique phase (Phase 4.2), the evaluator agent must employ a strict, standardized scoring matrix. The agent evaluates candidates on a 1–5 scale across four orthogonal dimensions. A candidate must achieve a minimum composite score to avoid being pruned.
+
+| Dimension | Definition | Low Score (1-2) Indicators | High Score (4-5) Indicators |
+| :---- | :---- | :---- | :---- |
+| **1\. Analogical Distance (Novelty)** | The degree of conceptual separation between the source inspiration and the target domain. | Relies heavily on near-domain precedents (e.g., designing a car based on an airplane's aerodynamics). | Borrows systemic logic from a radically distant field (e.g., designing a car's chassis based on cellular osmosis). |
+| **2\. Structural Rigor (Coherence)** | The depth to which the analogy is applied. Is it merely an aesthetic skin, or a fundamental mechanical bridge? | Superficial mapping; applies only terminology or color palettes without altering underlying function. | Deep structural mapping; the underlying logic of the source domain actively dictates the core functionality of the solution. |
+| **3\. Cliché Avoidance (Divergence)** | The absence of expected industry tropes, heavily reliant on the enforcement of the Negative Constraint Vector. | Relies on standard industry archetypes; feels familiar, highly intuitive, and safe. | Violates industry expectations while remaining functionally sound; induces mild cognitive dissonance upon first reading. |
+| **4\. Feasibility (Grounding)** | The physical, economic, or logistical viability of translating the conceptual blend back into the target domain. | Purely theoretical or absurd; breaks laws of physics, software constraints, or basic economic reality. | Conceptually radical but practically deployable using existing tools, materials, or recognizable frameworks. |
+
+## **Guidance on Adapting the Loop to Any New Domain**
+
+Because the iterative loop aggressively abstracts the problem away from its domain in Phase 1, adapting this workflow to a new field (whether that is writing a novel, designing an API, or creating a marketing strategy) requires zero structural changes to the core agent architecture. The divergence and cross-domain raiding phases operate purely on abstract logic.  
+The primary requirement for adaptation lies exclusively in the **Precedent Bridge** (Phase 5). The final synthesis agent must be equipped with a robust, domain-specific knowledge base or a specialized system prompt to translate the abstract analogical blend into the specific vernacular of the new field.  
+For instance, if adapting the loop for API architecture, the Phase 5 agent must possess documentation on REST, GraphQL, and microservices to accurately map a far-domain concept—such as "tectonic subduction"—into practical data deprecation protocols and rate-limiting logic. If adapting the loop for fashion design, the Phase 5 agent must be prompted with knowledge of textiles, draping, and manufacturing techniques to translate that same tectonic concept into layered seam structures. The engine remains static; only the final translation layer changes.
+
+## **Proof of Generality: The Cross-Domain Raid in Action**
+
+To demonstrate that this methodology is entirely domain-agnostic and operationally robust, we apply the exact same Cross-Domain Raid to four radically different design briefs.  
+**The Universal Setup:**
+
+* **The Random Far-Domain Selected:** Geology / Plate Tectonics.  
+* **Core Extracted Mechanisms (Source Rules):**  
+  1. *Subduction* (older, denser material is pushed beneath newer material to be recycled in the mantle).  
+  2. *Stratification* (layering of materials over vast timescales, creating distinct historical records).  
+  3. *Friction & Faults* (pressure builds at rigid boundaries until a sudden, massive release of energy reshapes the landscape).
+
+### **Application 1: A Restaurant Brand & Experience**
+
+* **Phase 1 Abstraction:** A system for caloric intake, pacing, and social signaling.  
+* **Phase 3 Forced Mapping:** How does a dining experience operate using Subduction, Stratification, and Fault lines?  
+* **Phase 5 Synthesis (The Output):**  
+  * **Concept:** *Lithos.* A restaurant where the physical menu, culinary technique, and dining environment operate on geological stratification.  
+  * **Execution:** Instead of a traditional printed menu, dishes are physically "stratified." The menu consists of literal layers of edible mediums (e.g., salt bakes, clay crusts, ash layers) that must be excavated by the diner. The service model mimics "subduction": as new seasonal dishes are introduced, the oldest dishes aren't removed immediately; they are "subducted" to an underground speakeasy level of the restaurant, evolving into fermented, aged, or preserved variations of their original selves. The spatial design relies on fault lines, with tables situated on slight physical divides that encourage strangers to interact across the "rift."
+
+### **Application 2: A Residential Building (Architecture)**
+
+* **Phase 1 Abstraction:** A system for human habitation, shelter, and spatial organization over time.  
+* **Phase 3 Forced Mapping:** How does a residential high-rise operate using Subduction, Stratification, and Fault lines?  
+* **Phase 5 Synthesis (The Output):**  
+  * **Concept:** *The Tectonic Modular High-Rise.*  
+  * **Execution:** The building completely rejects static floor plans. It is designed around massive vertical "fault lines" (central structural rails). Living modules are stratified, but they are not permanently fixed. Mimicking tectonic friction and release, the building features a dynamic facade where modular terrace units slowly shift along the fault lines over the course of a year, changing the shape, shading, and neighbor adjacencies of the building. "Subduction" is utilized in the building's waste and energy recycling systems, where greywater and organic waste are slowly pushed downward through a central biological filtration core, becoming nutrient-rich soil for the ground-floor public greenhouses.
+
+### **Application 3: A Software UI (Data Dashboard)**
+
+* **Phase 1 Abstraction:** A visual system for organizing, prioritizing, and retrieving information.  
+* **Phase 3 Forced Mapping:** How does a digital interface operate using Subduction, Stratification, and Fault lines?  
+* **Phase 5 Synthesis (The Output):**  
+  * **Concept:** *The Subduction Interface for Task Management.*  
+  * **Execution:** A complete rejection of the standard "infinite scroll" or "folder" UI paradigms. The dashboard is visualized as a 3D geological cross-section. "Stratification" dictates that as data and tasks age, they do not disappear; they are compressed into distinct, color-coded strata at the bottom of the screen, creating a visible history of work. "Subduction" is the core interaction mechanic: when a user drags a new, heavy priority task onto the screen, it physically forces older, unresolved tasks to subduct beneath the interface. However, mimicking geological pressure, these subducted tasks build "friction" (represented by a glowing heat map on the fault line). If neglected too long, the friction releases in a "quake"—automatically escalating the neglected tasks back to the surface layer and disrupting the current view, forcing the user to resolve or permanently archive them.
+
+### **Application 4: A Product Name (Cybersecurity Software)**
+
+* **Phase 1 Abstraction:** A semantic label representing the identification, isolation, and neutralization of external threats.  
+* **Phase 3 Forced Mapping:** How does threat neutralization map to Subduction, Stratification, and Fault lines?  
+* **Phase 5 Synthesis (The Output):**  
+  * **Concept:** *Mantle.*  
+  * **Execution:** The name rejects standard cybersecurity clichés (e.g., Shield, Guard, Fortress) which imply a brittle perimeter defense. Instead, the name *Mantle* is derived from the geological process of subduction, where the Earth's crust is pulled down and melted into the mantle. The branding narrative positions the software not as a wall that can be broken, but as a dynamic system that actively consumes malware, pulling threats beneath the surface into a sandbox environment (the mantle) where they are disassembled and recycled into threat intelligence data. The product tiers follow stratification logic: *Lithosphere* (endpoint protection), *Asthenosphere* (network monitoring), and *Core* (deep data encryption).
+
+By aggressively enforcing analogical distance through forced cross-domain mapping, ruthlessly pruning safe outputs via semantic entropy thresholds, and utilizing structured defixation protocols, this workflow successfully strips LLMs of their mathematical tendency toward the statistical mean. The resulting agentic loop transforms generative AI from a mechanism of mere probabilistic recall into an operationalized engine of genuine, bisociative creativity.
+
+#### **Works cited**
+
+1. Creative talent: has AI knocked humans out? \- UdeMnouvelles \- Université de Montréal, [https://nouvelles.umontreal.ca/en/article/2026/01/20/creative-talent-has-ai-knocked-humans-out](https://nouvelles.umontreal.ca/en/article/2026/01/20/creative-talent-has-ai-knocked-humans-out)  
+2. Researchers tested AI against 100,000 humans on creativity | ScienceDaily, [https://www.sciencedaily.com/releases/2026/01/260125083356.htm](https://www.sciencedaily.com/releases/2026/01/260125083356.htm)  
+3. Divergent Creativity in Humans and Large Language Models: A Structural Perspective on Cognitive Expression \- Medium, [https://medium.com/@jk1849716/divergent-creativity-in-humans-and-large-language-models-a-structural-perspective-on-cognitive-32f8e9a18855](https://medium.com/@jk1849716/divergent-creativity-in-humans-and-large-language-models-a-structural-perspective-on-cognitive-32f8e9a18855)  
+4. The Cognitive Skill Nobody Teaches — and Why Its Absence Is Quietly Reshaping How We Think | by Grandomastery \- Medium, [https://medium.com/@grandomastery/the-cognitive-skill-nobody-teaches-and-why-its-absence-is-quietly-reshaping-how-we-think-3a39c051fdd9](https://medium.com/@grandomastery/the-cognitive-skill-nobody-teaches-and-why-its-absence-is-quietly-reshaping-how-we-think-3a39c051fdd9)  
+5. Beyond Input–Output: Rethinking Creativity through Design-by-Analogy in Human–AI Collaboration \- ResearchGate, [https://www.researchgate.net/publication/403757784\_Beyond\_Input-Output\_Rethinking\_Creativity\_through\_Design-by-Analogy\_in\_Human-AI\_Collaboration](https://www.researchgate.net/publication/403757784_Beyond_Input-Output_Rethinking_Creativity_through_Design-by-Analogy_in_Human-AI_Collaboration)  
+6. The paradox of creativity in generative AI: high performance, human-like bias, and limited differential evaluation \- Semantic Scholar, [https://www.semanticscholar.org/paper/The-paradox-of-creativity-in-generative-AI%3A-high-Desdevises/73e800739113bc9466aa4a2daee77eddafa96ec2](https://www.semanticscholar.org/paper/The-paradox-of-creativity-in-generative-AI%3A-high-Desdevises/73e800739113bc9466aa4a2daee77eddafa96ec2)  
+7. Machine unlearning as a method of mitigating design fixation in human-AI creative collaboration \- DRS Digital Library, [https://dl.designresearchsociety.org/cgi/viewcontent.cgi?article=4159\&context=drs-conference-papers](https://dl.designresearchsociety.org/cgi/viewcontent.cgi?article=4159&context=drs-conference-papers)  
+8. Understanding Design Fixation in Generative AI \- Semantic Scholar, [https://www.semanticscholar.org/paper/Understanding-Design-Fixation-in-Generative-AI-Chen-Song/349476290f6c03ba6d7c494164b71533d8bbceaf](https://www.semanticscholar.org/paper/Understanding-Design-Fixation-in-Generative-AI-Chen-Song/349476290f6c03ba6d7c494164b71533d8bbceaf)  
+9. IDEAFix: Evaluation Framework for Creative Defixation Prompting in LLMs \- arXiv, [https://arxiv.org/html/2606.00875v1](https://arxiv.org/html/2606.00875v1)  
+10. LLM Jaggedness Unlocks Scientific Creativity \- arXiv, [https://arxiv.org/html/2605.10574v1](https://arxiv.org/html/2605.10574v1)  
+11. Beyond Divergent Creativity: A Human-Based Evaluation of Creativity in Large Language Models \- ACL Anthology, [https://aclanthology.org/2026.findings-eacl.138.pdf](https://aclanthology.org/2026.findings-eacl.138.pdf)  
+12. LLM Jaggedness Unlocks Scientific Creativity \- arXiv, [https://arxiv.org/html/2605.10574v2](https://arxiv.org/html/2605.10574v2)  
+13. Leveraging LLMs for Design Ideation: An AI Tool to Assist Creativity \- arXiv, [https://arxiv.org/pdf/2512.00010](https://arxiv.org/pdf/2512.00010)  
+14. Gearing Time Toward Musical Creativity: Conceptual Integration and Material Anchoring in Xenakis' Psappha \- PMC, [https://pmc.ncbi.nlm.nih.gov/articles/PMC7849451/](https://pmc.ncbi.nlm.nih.gov/articles/PMC7849451/)  
+15. Testing ideation performance on a large set of designers: effects of analogical distance \- Re.Public@polimi, [https://re.public.polimi.it/bitstream/11311/1121826/1/anon\_doc\_for\_review\_3rd\_sub.pdf](https://re.public.polimi.it/bitstream/11311/1121826/1/anon_doc_for_review_3rd_sub.pdf)  
+16. How to Fix the AI Idea Machine \- HBS AI Institute, [https://aiinstitute.hbs.edu/how-to-fix-the-ai-idea-machine/](https://aiinstitute.hbs.edu/how-to-fix-the-ai-idea-machine/)  
+17. How an analog deck from the '70s predicted AI's most powerful creative tool | VentureBeat, [https://venturebeat.com/ai/how-brian-eno-anticipated-the-creative-dynamics-of-ai-by-decades](https://venturebeat.com/ai/how-brian-eno-anticipated-the-creative-dynamics-of-ai-by-decades)  
+18. A Methodology for Objective Design Fixation Analysis in Constrained Design Tools | J. Mech. Des. | ASME Digital Collection, [https://asmedigitalcollection.asme.org/mechanicaldesign/article/doi/10.1115/1.4071923/1233053/A-Methodology-for-Objective-Design-Fixation](https://asmedigitalcollection.asme.org/mechanicaldesign/article/doi/10.1115/1.4071923/1233053/A-Methodology-for-Objective-Design-Fixation)  
+19. (PDF) Detecting Fixation Bias in Creative Idea Generation: Evidence from Design Novices and Experts \- ResearchGate, [https://www.researchgate.net/publication/385906279\_Detecting\_fixation\_bias\_in\_creative\_idea\_generation\_Evidence\_from\_design\_novices\_and\_experts](https://www.researchgate.net/publication/385906279_Detecting_fixation_bias_in_creative_idea_generation_Evidence_from_design_novices_and_experts)  
+20. Inspiration booster or creative fixation? The dual mechanisms of LLMs in shaping individual creativity in tasks of different complexity \- ResearchGate, [https://www.researchgate.net/publication/396169542\_Inspiration\_booster\_or\_creative\_fixation\_The\_dual\_mechanisms\_of\_LLMs\_in\_shaping\_individual\_creativity\_in\_tasks\_of\_different\_complexity](https://www.researchgate.net/publication/396169542_Inspiration_booster_or_creative_fixation_The_dual_mechanisms_of_LLMs_in_shaping_individual_creativity_in_tasks_of_different_complexity)  
+21. Conceptual blending \- Wikipedia, [https://en.wikipedia.org/wiki/Conceptual\_blending](https://en.wikipedia.org/wiki/Conceptual_blending)  
+22. Creative Integration: A Decidable Criterion of Creativity \- arXiv, [https://arxiv.org/html/2606.13977](https://arxiv.org/html/2606.13977)  
+23. Overview of Conceptual Blending Theory | PDF | Justification | Mental Processes \- Scribd, [https://fr.scribd.com/document/468594870/Conceptual-blending-Wikipedia](https://fr.scribd.com/document/468594870/Conceptual-blending-Wikipedia)  
+24. Inducing Sustained Creativity and Diversity in Large Language Models \- Gary King \- Harvard University, [http://gking.harvard.edu/files/Inducing-Sustained-Creativity-LLM.pdf](http://gking.harvard.edu/files/Inducing-Sustained-Creativity-LLM.pdf)  
+25. Human vs. LLM Creativity: A Comparative Analysis of Task-Dependent Asymmetry and Linguistic Mechanisms \- PMC, [https://pmc.ncbi.nlm.nih.gov/articles/PMC12942112/](https://pmc.ncbi.nlm.nih.gov/articles/PMC12942112/)  
+26. Analogical reasoning with large language models: a co-creative framework and benchmarking of LLMs in design ideation \- Cambridge University Press & Assessment, [https://www.cambridge.org/core/journals/design-science/article/analogical-reasoning-with-large-language-models-a-cocreative-framework-and-benchmarking-of-llms-in-design-ideation/0B8149CCF53C45E1E1B78C4CA93E5BDC](https://www.cambridge.org/core/journals/design-science/article/analogical-reasoning-with-large-language-models-a-cocreative-framework-and-benchmarking-of-llms-in-design-ideation/0B8149CCF53C45E1E1B78C4CA93E5BDC)  
+27. Leveraging large language models for enabling design by analogy: a computational framework \- ResearchGate, [https://www.researchgate.net/publication/395006872\_Leveraging\_large\_language\_models\_for\_enabling\_design\_by\_analogy\_a\_computational\_framework](https://www.researchgate.net/publication/395006872_Leveraging_large_language_models_for_enabling_design_by_analogy_a_computational_framework)  
+28. A comparative review on the role of stimuli in idea generation | AI EDAM | Cambridge Core, [https://www.cambridge.org/core/journals/ai-edam/article/comparative-review-on-the-role-of-stimuli-in-idea-generation/39AEADDDB577134D2251502F3BE621CF](https://www.cambridge.org/core/journals/ai-edam/article/comparative-review-on-the-role-of-stimuli-in-idea-generation/39AEADDDB577134D2251502F3BE621CF)  
+29. Crowdsourcing inspiration: Using crowd generated inspirational stimuli to support designer ideation \- Co-Design Lab, [https://codesign.berkeley.edu/pdfs/papers/kgl-crowdsourcing-stimuli-jmd.pdf](https://codesign.berkeley.edu/pdfs/papers/kgl-crowdsourcing-stimuli-jmd.pdf)  
+30. Examining the effects of near and far cues on creativity \- ResearchGate, [https://www.researchgate.net/publication/371993273\_Examining\_the\_effects\_of\_near\_and\_far\_cues\_on\_creativity](https://www.researchgate.net/publication/371993273_Examining_the_effects_of_near_and_far_cues_on_creativity)  
+31. Ideation Workshops Prompts \- Ai for Pro, [https://aiforpro.ai/ideation-workshops-prompts/](https://aiforpro.ai/ideation-workshops-prompts/)  
+32. What would Brian Eno's “Oblique Strategies” cards look for an AI? \- Medium, [https://medium.com/stuff-claude-says/what-would-brian-enos-oblique-strategies-cards-look-for-an-ai-39818bd0fd4c](https://medium.com/stuff-claude-says/what-would-brian-enos-oblique-strategies-cards-look-for-an-ai-39818bd0fd4c)  
+33. Hybrid Neural-LLM Pipeline for Morphological Glossing in Endangered Language Documentation: A Case Study of Jungar Tuvan \- arXiv, [https://arxiv.org/html/2603.00923v1](https://arxiv.org/html/2603.00923v1)  
+34. Grammar-LLM-combintations-morphological-analysis-table.md \- GitHub, [https://github.com/antononcube/RakuForPrediction-blog/blob/main/Articles/Diagrams/Robust-code-generation-combining-grammars-and-LLMs/Grammar-LLM-combintations-morphological-analysis-table.md](https://github.com/antononcube/RakuForPrediction-blog/blob/main/Articles/Diagrams/Robust-code-generation-combining-grammars-and-LLMs/Grammar-LLM-combintations-morphological-analysis-table.md)  
+35. TRIZ-RAGNER: A Retrieval-Augmented Large Language Model for TRIZ-Aw… \- OpenTrain AI, [https://www.opentrain.ai/papers/triz-ragner-a-retrieval-augmented-large-language-model-for-triz-aware-named-enti--arxiv-2602.23656/](https://www.opentrain.ai/papers/triz-ragner-a-retrieval-augmented-large-language-model-for-triz-aware-named-enti--arxiv-2602.23656/)  
+36. Integrating the Theory of Inventive Problem Solving with Large Language Models: Enhancing Reasoning for Innovation in Materials Science at the Molecular Scale \- MDPI, [https://www.mdpi.com/2305-7084/10/4/54](https://www.mdpi.com/2305-7084/10/4/54)  
+37. A Multi-Agent LLM Approach for TRIZ-Based Innovation \- arXiv, [https://arxiv.org/html/2506.18783v1](https://arxiv.org/html/2506.18783v1)
