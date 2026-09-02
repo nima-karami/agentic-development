@@ -1,193 +1,360 @@
 ---
 name: create-project-plugin
-description: Grow a project its own tailored suite of skills so generic workflow skills stop re-deriving the same project context every run. Use when the user wants to "set up project skills", "make a start-<project>-task", "bootstrap skills for this repo/workspace", "turn our conventions into a skill", package a project's skills as a plugin, or evolve/refresh existing project skills as the project matures. Trigger this whenever someone notices a generic skill keeps re-explaining the project to itself, or says the skills should grow up with the project.
-allowed-tools: Read, Glob, Grep, Bash, Edit, Write, WebSearch, AskUserQuestion
+description: "Use when a project should get its own skills instead of re-teaching a general skill what the project is every session. Triggers - 'set up project skills', 'make a project-specific plugin', 'bootstrap skills for this repo/workspace', 'adapt the general skills to this repo', 'turn our conventions into a skill', 'package our skills as a plugin', 'bootstrap a start-<project>-task', the agent re-learns the codebase every session, or evolving / retro-ing a project's existing skill suite as it matures."
+allowed-tools: Read, Glob, Grep, Bash, Edit, Write, Agent, AskUserQuestion
 ---
 
 # Create Project Plugin
 
-Grow a project its own **tailored skill suite**, and keep it current as the project
-matures. This is the factory behind skills like `start-trident-task`: a generic
-kickoff skill, specialized until it *knows* the project's repos, conventions, docs,
-and rules cold.
+Grow a project its own skill suite — one installable plugin whose skills carry the
+project's conventions, gates, and artifact locations, and keep it current as the
+project moves.
 
-## Core principle — bake in what a generic skill keeps re-deriving
+## Core principle
 
-A generic workflow skill (`start-<generic>-task`, a generic review skill) has to
-re-establish the same context on every run: *which repo, which branch convention,
-which docs matter, who owns what, what "done" means here.* That work is real, it's
-repeated, and the model does it slightly differently each time — so results drift.
+A general workflow skill knows methodology but not this project: not its gate
+command, not where specs live, not which invariants must never break. So every
+session re-derives the same context, slightly differently each time, and still gets
+the project-specific parts wrong.
 
-A **project skill** presses those durable facts into the skill itself, once. Then
-every future run starts at "what's the task" instead of "what is this project." The
-whole value of this tool is producing skills that read as if written by someone who
-knows the project intimately — because the reference the author consulted *was* the
-project.
+The fix is not to fork the general skills. Split what is being carried:
 
-So the job is not "write a skill." It's: **extract a project's durable conventions
-and press them into skills, in the right vessel, wired so they interconnect and stay
-current.** Two failure modes to avoid at all costs:
+- **Method** — how to spec, plan, build, review, verify. General, and pressed into
+  the emitted skill so it stands alone.
+- **Bindings** — the gate command, the branch rule, the artifact paths, the
+  read-when map. Project-specific, generated from discovery.
+- **Content** — architecture, style guides, contracts, decision records. **Owned by
+  the repository.** The plugin points at it by path and never copies it.
 
-- **Overfitting to today.** Don't hard-code a branch number, a ticket, a person, or
-  a transient path. Bake the *convention* (the branch-naming rule), not the instance.
-- **Re-deriving forever.** If a generated skill still says "figure out which repo
-  this touches" with no project-specific help, you haven't specialized anything.
+**The repository owns content; the plugin owns routing and method.** An emitted skill
+is not a forwarder — it does not say "invoke the general spec skill"; it *is* this
+project's spec skill. But it never restates what the project's own docs already say.
 
-## A suite is a pipeline, not a pile
+Two failure modes to avoid at all costs:
 
-A mature suite is stages that hand off, not a menu of disconnected helpers. The shape
-that works: the **kickoff routes by scale** (small → build directly; medium → plan →
-build; large → spec → plan → review → build, then quality-pass, then delivery on
-request), and each stage **locks its decisions with the user before the next descends**
-— the spec owns *what*, the plan owns *how*, the build owns *doing*. Three wiring rules
-make the pipeline hold:
+- **Overfitting to today.** A ticket number, a person, a branch, a machine path, a
+  port baked into a skill is a bug with a delay fuse. Bake the *convention*.
+- **Re-deriving forever.** A generated skill that still says "figure out which repo
+  this touches" specialized nothing.
 
-- **Briefs travel forward explicitly.** A stage doesn't inherit the conversation that
-  preceded it — the router hands each stage its inputs (repo/branch layout, confirmed
-  intent, settled decisions, artifact paths). An unbriefed stage re-derives, or worse,
-  guesses.
-- **Settled decisions are never re-litigated downstream.** A stage that finds one
-  genuinely broken says so and re-locks with the user — never silently adapts.
-- **Cross-cutting rules bind pipeline-wide, stated once.** Evidence standards, tripwire
-  patterns, commit conventions — put them where every stage can cite them (the router or
-  a shared reference), phrased identically, not re-derived per skill.
+## When to use
 
-## Gates beat restatement
+- A project with real, non-obvious conventions that agents keep getting wrong.
+- Work spanning several repositories or worktrees, where per-repository
+  configuration cannot reach.
+- A suite that already exists and has drifted from the project, or from the general
+  skills it was pressed from.
 
-When discovery (especially a session retro) shows a project rule that **exists in
-writing and still gets violated**, the fix is a *gate* baked into the stage where the
-violation happens — a required proof before a "done" claim, a diff-against-plan check
-before a commit, a mandatory full-grep behind any consistency claim — never a louder
-restatement of the rule. Distinguish the two failure kinds explicitly: a **knowledge
-gap** (no rule exists → write the fact into the owning skill/doc) versus an
-**enforcement gap** (rule exists, gets skipped → add the gate). Most of a suite's real
-power comes from its gates.
+## When NOT to use
 
-## The three modes
+- A new or small project with no established conventions. There is nothing to bind
+  to, and the bindings would be invented rather than observed.
+- A single one-off feature. Use the general skills directly.
+- As a substitute for the project's documentation. A fact with no home in the
+  repository gets a home *there*, not inlined here.
 
-Detect which one applies by checking whether the project already has a skill suite
-(look for `.claude/skills/`, a `*-skills` plugin, or user-level `start-<project>-task`).
-Confirm with the user rather than assuming.
+## Hard rules
+
+1. **The repository owns content; the plugin owns routing and method.** Never copy
+   architecture descriptions, style guides, contracts, or decision records into an
+   emitted skill. Point at them by path. A copy becomes a second source of truth and
+   silently drifts from the code it describes.
+2. **Conventions inline, instances never.** The branch rule, the commit-subject
+   shape, the gate command, the artifact locations and the "done" bar go inline in
+   every skill that needs them — those are what a pointer would make the agent skip.
+   A ticket key, a person, a port, a today-branch, an absolute machine path never do.
+3. **Emitted skills are self-contained within the plugin.** No pointer outside the
+   plugin except to paths inside the project's own repositories. A plugin-internal
+   shared reference is allowed and preferred over inlining the same fact N times.
+4. **Homeless knowledge gets a home in the repository first.** An operational fact
+   living only in the always-loaded instruction file gets a proposed home in the
+   project's docs, approved and moved, and *then* a pointer. This is why the suite
+   shrinks the instruction file instead of duplicating it.
+5. **Knowledge gap gets a fact; enforcement gap gets a gate.** A rule that exists in
+   writing and is violated anyway needs a checkable step at the violation point — a
+   required proof, a diff-against-plan check. Restating the rule louder is the
+   failure mode.
+6. **The canon is copied, never paraphrased.** Cross-cutting rules bind pipeline-wide
+   and are injected identically from `references/canon.md`. Identical wording is what
+   lets one search find every copy when a rule changes.
+7. **Bind only to what exists.** Detect the project's real commands, directories and
+   conventions. Never invent a convention the project does not have and never
+   restructure the project to fit the suite. A stale binding is worse than none.
+8. **Never weaken the project's gate.** The suite consumes the existing verification
+   command as-is. Gates are development discipline, not production-only.
+9. **The suite needs no rented infrastructure.** No emitted skill may require an
+   external account, hosted service, or extra tool the project does not already run.
+   Surface any unavoidable dependency and let the user decide.
+10. **Show the profile before generating.** A wrong profile is the cheapest bug to
+    fix at this point and the most expensive after twelve skills embed it.
+11. **No scripts unless asked.** Script candidates are listed, not written (Step 6).
+12. **Never emit an archetype the project cannot support.** A project with no way to
+    observe its running artifact gets a finding — "fix observability first" — not a
+    QA skill that pretends.
+
+## Modes
+
+Detect by checking whether the project already has a suite: a project-scoped skills
+directory, an installed suite plugin, a personal kickoff skill named for the project.
+Confirm with the user rather than assuming; never fabricate a mode transition.
 
 | Mode | When | What it does |
 |---|---|---|
-| **bootstrap** | No suite yet | Discover the project, propose a suite from the catalog, generate the picked skills into their right vessels, wire pointers. |
-| **add** | Suite exists, want more | Light re-discovery, generate the new archetype(s), wire them into the existing suite. |
-| **evolve** | Suite exists, project has moved | Audit existing skills against *current* conventions, find drift, propose and apply updates. This is the "retro". |
+| **bootstrap** | No suite | Discover → propose → generate → wire → prove → record. All steps. |
+| **add** | Suite exists, more wanted | Steps 3–8 only. Light re-discovery: the existing suite already encodes the profile; refresh what is stale. Match the shape and voice already there. |
+| **evolve** | Suite exists, project moved | The retro. See below. |
 
-Never fabricate a mode transition. If discovery shows a partial suite, say so and let
-the user pick bootstrap-the-rest vs add-one vs evolve. A **lone pre-existing skill in a
-different vessel** (e.g. a user-level `start-<project>-task` when you're bootstrapping a
-workspace plugin) isn't a full suite, but it *is* an overlap — surface it and reconcile
-(fold it into the new suite, supersede it, or leave it and cross-link), never silently
-generate a duplicate beside it.
+A **partial** suite is not a mode — say so and let the user pick bootstrap-the-rest,
+add-one, or evolve. A **lone pre-existing skill in a different vessel** (a personal
+kickoff skill when you are bootstrapping a workspace plugin) is not a suite but it
+*is* an overlap: surface it and reconcile — fold it in, supersede it, or leave it and
+cross-link — never silently generate a duplicate beside it.
 
----
+## Steps
 
-## Mode: bootstrap
+### 1. Discover
 
-### 1. Discover the project
+Follow `references/project-discovery.md`. It produces the **project profile** plus
+four inventories every later step consumes: homeless knowledge, exclusive-claim
+paths, the observability check, and script candidates.
 
-Read `references/project-discovery.md` and follow it. In short: read every
-`CLAUDE.md`/`AGENTS.md` **up the whole tree** (a repo under a workspace inherits the
-parent's rules), the docs read-when index, git-log conventions, existing skills, and
-any memory. Produce a short **project profile**: repos and who owns what, branch/commit
-conventions, the docs map, the "done" bar, and the tooling loop. You'll cite this
-profile inside every skill you generate — so get it right, and show it to the user to
-correct before generating anything. A wrong profile is the cheapest bug to fix here
-and the most expensive one to fix after six skills embed it.
+Delegate the reading breadth to agents one tier below this session; this session
+holds the profile and the decisions. Stop when you could write the profile and defend
+it, not when you have read everything.
+
+**Show the profile to the user and get it corrected before generating anything.**
 
 ### 2. Propose the suite
 
-Read `references/archetypes.md` — the catalog of skill types this tool knows how to
-generate. Map the project profile onto it: recommend the archetypes this project would
-actually use, skip the ones it wouldn't. Present the shortlist with a one-line reason
-each, and let the user pick (they'll add more later — a suite grows, it isn't
-front-loaded). Don't push the whole catalog onto a small project; right-sizing the
-suite is as much the job as right-sizing each skill.
+Pick a **preset** (below) as the starting shortlist, then adjust against the profile.
+Present the shortlist with a one-line reason each and let the user pick. A suite
+grows; it is not front-loaded. Right-sizing the suite is as much the job as
+right-sizing each skill.
 
-### 3. Decide the vessel for each picked skill
+### 3. Generate each skill
 
-Read `references/scope-and-wiring.md`. For each skill decide: per-repo
-(`<repo>/.claude/skills/`), per-user (`~/.claude/skills/`), or part of a workspace
-**plugin** (`<project>-skills`) when it spans repos or must ship to a team. This is a
-per-skill decision — a deploy skill that spans repos and a repo-local review skill land
-in different places. When a project is multi-repo (like a workspace of sibling repos),
-the plugin vessel is usually right and is what makes the suite installable and
-interconnected.
+For each picked archetype, in this order:
 
-### 4. Generate each skill
+1. **Seed** — read the general skill named in the catalog. Preserve its signature
+   patterns: the triage tier, the lock-one-level-at-a-time ladder, the restate-and-
+   wait gate, the self-review before emitting, the machine-parseable handoff block.
+   These are what a from-scratch generation silently loses. When the seed has no
+   readable file, reconstruct from its description and observed behavior, and say so.
+2. **Specialize** — press the method in. The emitted skill is the project's skill for
+   that stage, complete on its own.
+3. **Bind** — fill the binding block from the profile: gate command, artifact
+   locations, branch and commit conventions, read-when map, "done" bar.
+4. **Inject canon** — copy the items `references/canon.md` assigns this archetype,
+   verbatim, plus the binding block.
+5. **Self-review** — against `references/skill-authoring.md`. A skill that still tells
+   its reader to "figure out the project's conventions" goes back to step 2.
 
-Read `references/skill-authoring.md` before writing any skill — it's the quality bar
-that keeps generated skills from being bloated or musty. For each picked archetype:
-start from the archetype's shape, fill it with the project profile, and write it to its
-chosen vessel. Generated skills must be **self-contained** (no pointers to files
-outside their own repo/plugin) and written in plain terms — they're committed work.
+### 4. Wire, package, register
 
-### 5. Wire and register
+Wire per the rules below: the kickoff routes by scale, each stage's handoff block is
+the contract with the next, and each skill's description names the neighbours it hands
+to. Then package per `references/packaging.md` — the manifest with a starting semver,
+the local marketplace manifest, the pointer block in the project's always-loaded
+instruction file, and the retro directories inside the plugin so the learning history
+travels with the suite. Tell the user the exact install steps and how a teammate picks
+it up.
 
-Per `references/scope-and-wiring.md`: create the plugin's `plugin.json` +
-`.claude-plugin/marketplace.json` if you built a plugin, add the pointer block to the
-project's `CLAUDE.md` so sessions know the suite exists, and cross-link skills that
-hand off to each other (kickoff → spec → plan → execute). Tell the user exactly how to
-install/activate what you built and how a teammate picks it up.
+### 5. Prove it on one real task
 
----
+Run the pipeline end to end on one small, real piece of work. A suite that has never
+carried a task is a guess. Confirm three things specifically:
 
-## Mode: add
+- Every handoff artifact appears where the binding says it will.
+- The review and QA stages **fail a deliberately broken change**. A stage that passes
+  everything is not a stage.
+- A parked task does not stall the others.
 
-Same as bootstrap steps 2–5, but skip full discovery — read the existing suite first
-(it already encodes the project profile), refresh only what's stale, then generate the
-new archetype(s) and wire them in alongside the existing ones. Match the shape and
-voice of the skills already there so the suite stays one learnable pattern.
+Fix what the run exposes before recording. This step is the difference between a
+generated suite and a working one.
 
----
+### 6. Record
 
-## Mode: evolve (the retro loop)
+Two records. **Script candidates:** the mechanical routines discovery found — workspace
+setup, teardown, resource allocation, integrity scans, evidence capture — into the
+plugin's script-candidates file, each with the arguments it would take and the manual
+sequence it replaces. **Write no scripts unless the user asks;** the list is the ask,
+and agents doing these by hand tool call by tool call are the cost it makes visible.
+**Decision record:** in the project's own convention — what was bound, what moved out
+of the instruction file, what was deliberately left alone, which archetypes were
+skipped and why. Then the first changelog entry at the starting version.
 
-This is what makes the suite mature *with* the project instead of rotting.
+## Mode: evolve
 
-1. **Re-run discovery** (`references/project-discovery.md`) to get the *current*
-   profile.
-2. **Diff against what the skills encode.** For each existing project skill, look for
-   drift: conventions that changed (a new branch rule, a renamed doc, a new repo), file
-   paths the skill references that no longer exist, steps that no longer match how the
-   team works, and *new* recurring patterns that deserve their own skill or archetype.
-   `git log` on the skill files and on `CLAUDE.md`/docs since the skill was last touched
-   is the fastest drift signal.
-3. **Propose a changelist** — per skill: keep / update (with the specific edit) /
-   retire / split. Group it so the user can approve category by category.
-4. **Apply** the approved changes, re-wire pointers, and note what changed so the next
-   retro has a baseline.
+The retro that keeps the suite maturing with the project rather than rotting.
 
-Offer to leave behind a shippable **`retro` skill** (an archetype) so this loop travels
-with the repo and the team can trigger it without this tool installed.
+1. **Read the plugin's retro notes first** — they are pre-tagged, they were written by
+   sessions that knew what hurt, and what sits unfiled is by construction the
+   unaddressed set. Sweep session transcripts only for what the notes left open.
+2. **Classify** each finding: knowledge gap, enforcement gap, or one-off. Also collect
+   the counter-examples — what went cleanly, and which investment paid for it.
+3. **Diff each emitted skill against its current seed.** Seeds improve; a suite pressed
+   from a six-month-old seed is missing every gate added since. Carry the improvements
+   across, keeping the project bindings. In the same pass, **re-check every path binding
+   still exists** — a renamed directory or a moved gate turns a skill into a confident
+   liar, and nothing else in the suite looks for it.
+4. **Diff against existing homes** before proposing anything, so a rule is strengthened
+   or moved, never forked into a second place.
+5. **Propose a changelist** grouped by category — keep / update (with the edit) / add /
+   retire / split — for per-category approval.
+6. **Apply, bump the version, write the changelog entry, file the notes.** An unchecked
+   box is a decision, not an oversight to absorb silently.
 
----
+Full procedure and note format: `references/learnings-chain.md`.
 
-## A note on rigor
+## Archetype catalog
 
-Generated skills are committed, long-lived, and read by teammates and future sessions.
-Hold them to the same bar the project holds its code: correct placement, self-contained,
-named for the role not the moment, additive-not-breaking when you evolve them. Being
-lazy about *scope* (don't generate an archetype nothing needs) is good; being lazy about
-*rigor* (a skill that overfits, or re-derives, or points at a file that moved) is not.
+Detail per archetype — bindings required, gates carried, shape notes — in
+`references/archetypes.md`.
+
+| Archetype | Seed pressed in | Included when |
+|---|---|---|
+| **manage** | none — desk charter | multi-repo workspace or multi-session work |
+| **start** | none — kickoff and router | always |
+| **spec** | the general spec skill | always |
+| **plan** | the general planning skill | always |
+| **design-review** | the general design-critic skill | always; FULL work only at runtime |
+| **build** | the general build-and-verify skill | always |
+| **code-review** | the general code-review skill | always |
+| **qa** | the general runtime-QA skill | when the artifact can be observed |
+| **deliver** | none — project-bound | when the project has a delivery flow |
+| **close** | none — distillation gate and teardown | always |
+| **gate-health** | the general repo-hardening skill, re-audit mode | always, scheduled by the retro |
+| **loop** | the general autonomous-loop skill | when unattended runs are wanted |
+| **retro** | none — the evolve mode, shipped | always |
+
+## Presets
+
+Two axes. Present the intersection as the shortlist, then adjust.
+
+**By project shape:**
+
+| Preset | Archetypes |
+|---|---|
+| `single-repo-app` | start, spec, plan, design-review, build, code-review, qa, close, gate-health, retro |
+| `multi-repo-workspace` | the above **+ manage, deliver** |
+| `library-or-cli` | the single-repo set **− qa** (no observable surface), with a contract/compatibility check folded into code-review |
+
+**By methodology source:**
+
+- `lab-seeds` (default) — the seeds in the catalog, read as templates and pressed in.
+  The emitted suite has no runtime dependency on them, and none on any external plugin,
+  account or service.
+- `bring-your-own` — the user names an external flow. Map that flow's stages onto the
+  catalog's archetypes instead of the seeds, keeping the catalog's inclusion rules,
+  gates and handoff contracts. A stage the named flow has no equivalent for is
+  reported, not invented.
+
+Add `loop` to any preset when the user wants unattended runs.
+
+## Pipeline wiring rules
+
+- **The kickoff routes by scale.** Small (one obvious change in one place) → build.
+  Medium (clear scope, a few files, no new seam) → plan → build. Large (a new or
+  changed seam, cross-repo effects, real open decisions) → spec → plan →
+  design-review → build. When in doubt, bias up. Setup-only is a route of its own:
+  scaffold and stop.
+- **Code-review then QA always follow build** for anything user-facing. Deliver runs
+  only on explicit request; commit is the default endpoint. Close always runs.
+- **Briefs travel forward explicitly.** A stage does not inherit the conversation
+  before it. The router hands each stage: the workspace or worktree paths, the
+  confirmed intent, the settled decisions, and the artifact paths it reads and
+  writes. An unbriefed stage re-derives, or worse, guesses.
+- **Settled decisions travel forward and are never re-litigated downstream.** A stage
+  that finds one genuinely broken says so and re-locks — never silently adapts.
+- **The handoff block is the contract.** Each stage ends with a machine-parseable
+  block naming its artifact, its tier, and its verdict or counts. The next stage reads
+  the block, not the prose. Keep the block's shape stable across versions.
+- **The pipeline does not block on one task.** A task in QA must not stall another
+  entering spec. A task that cannot progress parks with its reason recorded and the
+  queue keeps moving.
+
+## The learnings chain
+
+Three hops, each with a gate, and the whole reason the suite improves:
+
+1. **Capture** — canon 6: per-slice tagged bullets into the run's learnings file.
+2. **Distil** — at close, a ≤15-line note with `## Friction` and `## Worked` sections
+   into the plugin's retro directory. **Teardown is refused until the note exists**,
+   even when it says "nothing notable" — skipping it starves the retro.
+3. **Promote** — the retro reads the notes, classifies, applies on approval, bumps the
+   version, writes the changelog entry, and files applied notes away so what remains is
+   exactly the unaddressed set.
+
+Procedure, note format and changelist format: `references/learnings-chain.md`.
 
 ## Running unattended
 
-The modes above have deliberate human gates — show the profile before generating, let the
-user pick the suite, approve the changelist before applying. Those exist because a wrong
-profile or an unwanted skill is cheap to catch here and expensive later. When there's **no
-human** (a pipeline, an autonomous run), don't treat a gate as a dead stop: proceed on the
-**safest defaulting assumption**, record each skipped gate and the assumption you made as
-an explicit note in the output, and prefer generating into a scratch/proposed location the
-user can review over writing straight into live vessels. The rule is *never block, always
-leave a trail* — a human should be able to read back exactly which decisions you made on
-their behalf and undo any of them.
+The gates above exist because a wrong profile or an unwanted skill is cheap to catch
+here and expensive later. With no human, never treat a gate as a dead stop:
+
+- Proceed on the **safest defaulting assumption** and record each skipped gate with the
+  assumption made.
+- **Generate into a proposed location** for review rather than writing straight into
+  live vessels.
+- Never call an interactive question tool; a would-be question becomes a recorded
+  decision-needed item.
+- **Never block, always leave a trail** — a human must be able to read back exactly
+  which decisions were made on their behalf, and undo any of them.
+
+## Model routing
+
+This skill is an orchestrator. The session holds the profile, the suite shortlist, the
+judgment calls inside each generated skill, and the changelist. Discovery reading,
+transcript mining and first drafts go one tier below the session; bulk listing and
+mechanical edits two below with a floor at the mid tier; never above the session.
+Concrete model names are in `references/canon.md`. The tell that this is being broken:
+this session running its fifth directory listing in a row instead of reading a report.
+
+## Common mistakes
+
+- **Copying the project's documentation into the plugin.** The most common failure and
+  the hardest to detect later, because the copy looks authoritative while going stale.
+- **Emitting forwarders.** A skill whose body is "read the general spec skill, then
+  apply our conventions" adds a hop and no knowledge. Press the method in.
+- **Front-loading the whole catalog.** Twelve skills nobody asked for are twelve
+  bindings to keep current.
+- **Paraphrasing the canon**, so a rule change means finding nine wordings instead of
+  one. **Baking in an instance** — a branch, a ticket, a port, a machine path — each of
+  which works for exactly one week.
+- **Generating a QA skill for an unobservable artifact**, so the suite ships a stage
+  that can only lie.
+- **Skipping the prove-it run.** A suite that has never carried a task is a guess, and
+  its first real user finds the broken handoff.
+- **Copying another project's incident scars.** A scar is load-bearing because it is
+  *this* project's; a borrowed one is a decoration a session will rationalize past.
+
+## Gotchas
+
+- **A pointer costs a read the agent can skip.** State that opening the file is
+  required and that seeing the path is not reading it. The irreducible
+  never-get-this-wrong lines stay inline; point for the depth. And the always-loaded
+  instruction file is the only thing guaranteed to load at all — a skill fires when its
+  description matches, which is not certain, so rules that must never be missed stay in
+  the instruction file with a pointer to the suite.
+- **Per-task verification passing does not mean the integrated tree passes.** Two
+  independently-green tasks can break each other on merge. Integration is a
+  serialization point, and the suite must have one.
+- **A stale binding is worse than no binding.** No binding makes the agent look; a
+  stale one makes it confidently open nothing. The retro's path re-check exists for
+  this alone.
+- **Plugin skills are namespaced; loose ones are not.** A project-local skill sharing a
+  name with a personal one can be shadowed by it, silently, and the wrong skill runs.
+  The plugin vessel sidesteps this; installing it stays an explicit per-machine step,
+  which belongs in the project's setup instructions. See `references/packaging.md`.
+- **The pre-production stance is a parameter, not a rule.** "No compatibility shims, no
+  flags to stage a cutover, temporary feature loss is acceptable" is right for a
+  pre-launch project and actively wrong for one with live users. Ask; do not inherit.
 
 ## Reference files
 
-- `references/project-discovery.md` — what to read to learn a project, and the profile to produce.
-- `references/archetypes.md` — the catalog: one entry per skill type, with shape and scope defaults.
-- `references/scope-and-wiring.md` — per-repo vs per-user vs plugin; how to package and register.
-- `references/skill-authoring.md` — how to write a *good* project skill (the quality bar).
+- `references/project-discovery.md` — what to read, and the profile and inventories to produce.
+- `references/archetypes.md` — the catalog: seed, inclusion rule, bindings, gates, shape per archetype.
+- `references/packaging.md` — layout, manifests, install, versioning, namespacing, multi-repo reach.
+- `references/skill-authoring.md` — the quality bar for an emitted skill.
+- `references/learnings-chain.md` — capture → distil → promote, note and changelist formats.
+- `references/canon.md` — the nine cross-cutting rules to copy verbatim, and the tier table.
