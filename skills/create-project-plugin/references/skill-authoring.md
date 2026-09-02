@@ -18,9 +18,18 @@ allowed-tools: <only what this skill actually uses>
   name the contexts and the casual phrasings a real user of *this* project types — not
   a workflow summary. A description that summarizes the workflow gets followed *instead*
   of the body being read.
+- **Budget the description to ~400 characters.** Every skill in the suite has one and all
+  of them are loaded on every turn, so a twelve-skill suite at 700 characters each is
+  ~8,400 characters of permanent overhead. Cut in this order: repeated phrasings of the
+  same trigger; generic keywords a user would type against any project; the
+  neighbour-naming clause, down to bare stage names. Cut the distinctive project
+  phrasings last — they are the only reason the skill fires at the right moment.
 - **`allowed-tools` is the boundary made real.** A planning skill legitimately writes
   its own artifact and runs setup commands, so it carries write and shell access but not
-  source editing. State the boundary in the body too, so it is explicit to the reader.
+  source editing. It is the **union across the skill's modes**: a skill that asks the user
+  questions interactively and is forbidden to ask them in an autonomous run still lists
+  the question tool, because it uses it in one mode. State the per-mode boundary in the
+  body, so the union does not read as a defect to whoever audits the frontmatter alone.
 
 ## Structure
 
@@ -30,9 +39,18 @@ Overview / core principle → When to use / When NOT to use → **Hard rules** (
 project bindings) → numbered Steps → reference tables → Common mistakes → Gotchas →
 Reference files.
 
-Three levels of disclosure: metadata always loaded, body loaded on trigger (keep under
-~350 lines), `references/` read on demand. The project's exhaustive detail — a full test-
-affordance surface, a deploy runbook's failure table — goes in a reference file the body
+Three levels of disclosure: metadata always loaded, body loaded on trigger, `references/`
+read on demand.
+
+**The body budget is ~350 lines, and it excludes the canon block and the project-binding
+block.** Both are injected verbatim and neither is the author's to trim, so counting them
+would penalise exactly the archetypes that carry the most canon and need the most method
+— `build` and `loop`. Both stay **inline in every skill**: the canon because identical
+wording is what lets one search find every copy (hard rule 6), the binding block because
+a pointer is what the agent skips (hard rule 2). Neither moves to a shared reference.
+
+Everything else counts. The project's exhaustive detail — a full test-affordance surface,
+a deploy runbook's failure table, a report template — goes in a reference file the body
 points at, never inline.
 
 ## Voice
@@ -48,12 +66,15 @@ points at, never inline.
 
 ## Self-contained, and what that means
 
-- No pointer outside the plugin, except to paths inside the project's own repositories.
+- No pointer outside the plugin, except to paths inside the project's own repositories —
+  and the retro's seed-drift diff, which names general skills as **diff targets only**,
+  never invokes one, and skips with a recorded note when a seed is not installed.
 - **No machine paths.** An absolute path from the author's disk is the single most common
   defect in hand-built suites, and it fails silently for everyone else.
 - A plugin-internal shared reference is allowed and preferred over inlining the same fact
-  in six skills. "Self-contained" bars reaching *outside* the vessel, not sharing inside
-  it.
+  in six skills — but for **depth facts only**. The canon and the project-binding block
+  are always inline in every skill; a pointer is exactly what the agent skips there.
+  "Self-contained" bars reaching *outside* the vessel, not sharing inside it.
 - The skill **is** the project's skill for its stage. It never forwards to a general
   skill: a body that says "invoke the general planning skill, then apply our conventions"
   adds a hop and no knowledge, and breaks the moment that general skill is not installed.
@@ -79,6 +100,10 @@ principle. So each hard rule may carry one anonymized clause naming what went wr
 borrowed from another project is a decoration: the reader has no memory of it, nothing
 confirms it, and the first session under pressure discounts the whole rule. An empty scar
 slot is fine — the rule still stands on its reason.
+
+The scar clause is not the only thing that may follow a rule: a **project clause** on a
+canon item (` — Project: …`) is a separate, separately authorized appendage — see
+`canon.md`. Both go *after* the rule's own text; neither ever edits it.
 
 ## Parameters, not rules
 
@@ -115,11 +140,18 @@ intent harder to find and mostly get ripped out.
 
 - [ ] Description starts with "Use when…", names this project's real trigger phrasings,
       and summarizes no workflow.
-- [ ] `allowed-tools` is exactly what the skill uses.
+- [ ] Description is within ~400 characters.
+- [ ] `allowed-tools` is the union of what the skill uses across its modes, and the body
+      states the per-mode boundary.
 - [ ] Names the project's **real** repositories and ownership, branch rule, commit shape
       — from the profile, not a placeholder.
 - [ ] States the exact gate command and the artifact locations for its stage.
 - [ ] Points at the project's **actual** docs by path, and says the read is required.
+- [ ] **Every `references/` path this skill names exists and is non-empty.** A dangling
+      pointer fails silently: the reader follows it, finds nothing, and invents the
+      artifact format. Resolve them, do not eyeball them.
+- [ ] **Every artifact this skill writes is one no sibling skill also writes** — or the
+      split is stated in both skills, including which invocation shape owns which file.
 - [ ] Carries its assigned canon items **verbatim**, plus the binding block.
 - [ ] Carries the gates its archetype owns, at the point where the violation happens.
 - [ ] Conventions inline; no instance, no machine path, no borrowed scar.
@@ -128,7 +160,8 @@ intent harder to find and mostly get ripped out.
 - [ ] Every tuning knob it exercises is stated as this project's choice, with the reason.
 - [ ] Works without any external account, hosted service, or tool the project does not
       already run.
-- [ ] Under ~350 lines, with depth in `references/`.
+- [ ] Under ~350 lines excluding the canon and binding blocks, with depth in
+      `references/`.
 
 A skill that still tells its reader to "figure out the project's conventions" failed the
 only test that matters. Go back and press the profile into it.

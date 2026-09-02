@@ -1,6 +1,6 @@
 # Project discovery
 
-Discovery produces one **profile** and four **inventories**. Every later step cites
+Discovery produces one **profile** and five **inventories**. Every later step cites
 them, so read widely, then distil, then show the profile to the user before generating
 anything.
 
@@ -121,6 +121,35 @@ arguments it would take, and the failure it currently causes when done by hand
 This inventory becomes the plugin's script-candidates file. **Write no scripts unless
 the user asks.** The list exists because agents default to doing all of this by hand,
 tool call by tool call, and that cost is invisible until someone counts it.
+
+## Inventory 5 — conventions the suite adds rather than observes
+
+The other four inventories record what the project *has*. This one records what the suite
+**needs and the project does not have yet** — most often the run learnings file canon item
+6 requires, sometimes an evidence directory, a run ledger, or a place for review verdicts.
+
+This is the gap between two hard rules that otherwise contradict each other here: *bind
+only to what exists* forbids asserting a directory the project lacks, and *homeless
+knowledge gets a home first* covers facts stranded in the instruction file, not files the
+suite itself introduces. Neither covers this case, so name it explicitly.
+
+For each addition record:
+
+| Field | Content |
+|---|---|
+| The convention | the file or directory, and its shape |
+| Needed by | the archetype that cannot work without it, and which canon item or gate demands it |
+| Proposed home | the exact path, matching the project's existing conventions |
+| Why not observed | it does not exist yet, versus it exists under a different name |
+
+Every entry lands in the proposal file rather than being written into the project, and
+the skill that introduces it says so in its own body — so the addition is visible as an
+addition and easy to overrule. In an emitted skill, an added convention that a canon item
+asserts is carried as a project clause on that item (see `canon.md`), never as a silent
+edit to the canon text.
+
+An addition nobody approves is not a blocker: state the assumption, note that the file is
+created by the stage that needs it at first use, and record it.
 
 ## Interview only for the gaps
 

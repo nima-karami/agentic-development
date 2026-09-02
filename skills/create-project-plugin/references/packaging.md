@@ -20,19 +20,38 @@ repository they sit in; personal skills do not travel with the project.
     build/SKILL.md
     code-review/SKILL.md
     qa/SKILL.md
-      references/         e.g. the project's test-affordance surface
-      assets/             e.g. a QA report template
+      references/         everything the body points at: the project's test-affordance
+                          surface, a QA report template, a long failure table
     close/SKILL.md
     retro/SKILL.md
     …                     one directory per included archetype
-    _shared/              optional: conventions cited by several skills
+    _shared/              optional: depth facts cited by several skills — never the
+                          canon or the binding block, which stay inline in each skill
   scripts/
     README.md             script candidates — arguments and what each replaces
   docs/
     retro/                per-task retro notes: the unaddressed queue
       applied/            notes the retro has landed
   CHANGELOG.md
+  PROPOSED-<project>-changes.md   unattended runs only: every project-side edit as a
+                                  ready-to-apply diff with its target path
+  BOOTSTRAP-NOTES.md              unattended runs only: skipped gates and the assumption
+                                  taken for each, what was regenerated and why,
+                                  prove-it status, and generator defects found
 ```
+
+**There is one directory for supporting files: `references/`.** A skill addresses one as
+`references/<file>.md` relative to its own `SKILL.md`, and states that opening it is
+required. Templates, report shapes and long tables all live there; do not invent a second
+directory for them, and do not point at one from a body without creating it (see the
+pointer-resolution step in the generator's Step 3).
+
+**The two proposal files are the unattended mode's only write targets outside the
+plugin — and they are inside it.** Steps that would write into the project (the pointer
+block in its instruction file, the decision record, anything the prove-it run touches) go
+into `PROPOSED-<project>-changes.md` instead, as diffs a human can apply; every gate
+skipped and every assumption taken goes into `BOOTSTRAP-NOTES.md`. Use these exact names:
+a second unattended run that invents its own filenames leaves two trails nobody finds.
 
 Two placements are deliberate:
 
@@ -42,6 +61,11 @@ Two placements are deliberate:
 - **`CHANGELOG.md` exists from the first version.** A retro that says "record what
   changed in the suite's changelog" against a plugin that has none leaves git history as
   the only record, and git history is not what the next retro reads.
+
+Both retro directories are empty at bootstrap and version control does not track empty
+directories, so put a short `README.md` in each saying what it holds — otherwise the
+learning store the layout is careful to place inside the plugin does not survive its
+first commit.
 
 ## Manifest
 
@@ -62,6 +86,40 @@ Start at `1.0.0` once the suite has passed its prove-it run. Bump **minor** when
 archetype is added or the pipeline is re-wired, **patch** when a gate or binding is
 corrected. Every retro that applies a changelist bumps the version and writes the
 changelog entry in the same change.
+
+## The write-ownership table
+
+The handoff block says what a stage **hands on**. Nothing in it says what a stage
+**owns**, and two skills can each be perfectly correct on their own while writing the
+same file. That conflict exists only *between* skills, so no per-skill review can see it,
+and its symptom in production is silent data loss rather than an error.
+
+So before packaging, tabulate every path the suite writes — run reports, run ledgers, QA
+reports, evidence directories, review verdicts, retro notes, learnings files, archives —
+and give each **exactly one owning skill**:
+
+| Path | Owner | Others may |
+|---|---|---|
+| `<run dir>/report.md` | close (per task) | loop writes the ledger instead; qa and gate-health use their own filenames |
+| `<run dir>/qa-report.md` | qa | — |
+| `<run dir>/ledger.md` | loop | close appends its item's outcome under a conductor |
+| `<retro dir>/<id>.md` | close | retro moves them to `applied/` |
+| `<learnings file>` | build | close reads it, never writes it |
+
+Rules for the table:
+
+- **One owner per path.** A second writer is a defect, not a coincidence to note.
+- **A split is allowed only when it is written into both skills.** A stage invoked in two
+  shapes — once per task, and once per item under a conductor — legitimately writes
+  different things in each. Say so in *both* bodies and in both handoff blocks: the
+  per-task owner names what it hands to the conductor, and the conductor names what it
+  takes over. A split assumed by one side and unknown to the other is the same bug.
+- **A scheduled or out-of-pipeline stage gets its own directory or filename**, because it
+  has no run slug and no business inside another run's directory.
+- **Never let a per-item stage archive the conductor's live state.** That is what the
+  next compaction resumes from, and archiving it after the first item ends the run.
+
+Put the finished table in the plugin's `README.md` so the next retro can diff against it.
 
 ## Naming and the shadowing hazard
 
@@ -92,11 +150,16 @@ marketplace manifest as a marketplace, then install the plugin from it. The mark
 manifest works fine for a purely local, single-user plugin — the path can be a plain
 directory. Team sharing just means putting the same manifest somewhere teammates reach.
 
+The manifest lives at `<project>-skills/.claude-plugin/marketplace.json`, one directory
+inside the plugin it advertises, so its `source` is the self-referencing `"./"`. A source
+naming the plugin directory would only resolve if the manifest sat one level *above* it,
+which is not the layout.
+
 ```json
 {
   "name": "<project>-marketplace",
   "owner": { "name": "<author>" },
-  "plugins": [{ "name": "<project>-skills", "source": "./<project>-skills" }]
+  "plugins": [{ "name": "<project>-skills", "source": "./" }]
 }
 ```
 
@@ -157,3 +220,5 @@ for a team, document it in the project's setup instructions.
 - Machine paths, ticket keys, people's names, ports, or any other instance.
 - Emitted scripts nobody asked for. `scripts/README.md` lists candidates; scripts get
   written on request.
+- A `references/` pointer with no file behind it, and a second supporting directory
+  alongside `references/`.

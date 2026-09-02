@@ -8,6 +8,29 @@ slightly different versions of the same gate.
 Copy the numbered text below into the emitted skill's **Hard rules** section, then add
 the project bindings from the second half of this file underneath.
 
+## When an item asserts something this project does not have
+
+Some items name a thing the project may lack — item 5 assumes a scripts directory, item 6
+assumes a learnings file. **Never edit the item to fit.** Append a **project clause**
+after the verbatim text, separated by ` — Project: `:
+
+```
+5. **Script over manual.** …one-offs go to the OS temp dir. Agents default to doing
+   everything by hand; that costs tokens and wall-clock. — Project: this repository has
+   no scripts directory yet; until it does, durable candidates are listed in the
+   plugin's script-candidates file rather than written.
+```
+
+The separator matters: the canon text ahead of it is still byte-identical, so one search
+for the canon wording still finds every copy across the suite, and one search for
+` — Project: ` finds every place a project had to qualify it. A clause may narrow, defer,
+or redirect an item; it may never weaken a gate the item sets. If the item is wrong for
+this project in a way no clause can rescue, that is a finding, not an edit.
+
+A convention the suite *introduces* rather than observes — the learnings file being the
+usual one — is a project clause plus an entry in discovery's fifth inventory, so it lands
+in the proposal file as an addition rather than being asserted as a fact.
+
 ---
 
 ## The nine
@@ -73,10 +96,14 @@ the project bindings from the second half of this file underneath.
 | code-review | 1, 3, 8, 9 |
 | qa | 1, 2, 3, 5, 7 |
 | deliver | 1, 2, 3 |
-| close | 6 |
+| close | 3, 6 |
 | gate-health | 1, 3, 8 |
 | loop | all nine |
 | retro | 3, 6, 8 |
+
+`close` carries item 3 because its own gates — every branch an ancestor of the mainline,
+a last commit that is the user's — are evidence claims about current state made
+immediately before an irreversible delete, which is exactly what item 3 governs.
 
 Injecting an item a stage cannot act on is noise; leaving one out where the stage can
 violate it is the gap. When in doubt, inject — a stage that carries a rule it never
@@ -86,7 +113,11 @@ needs costs a few lines, a stage missing the rule it needed costs a run.
 
 Under the canon, every emitted skill states the project's own bindings, phrased
 identically across the suite. Fill from the discovery profile; drop lines the skill's
-stage genuinely cannot use.
+stage genuinely cannot use, and say in the skill which ones were dropped and why.
+
+**It is always inline, in every skill, never behind a shared reference** — a pointer is
+exactly what the agent skips, and identical wording is what lets one search find every
+copy when a binding changes. Like the canon, it does not count against the body budget.
 
 ```
 - Gate command: <exact command>, run from <where>, exit code read directly.
