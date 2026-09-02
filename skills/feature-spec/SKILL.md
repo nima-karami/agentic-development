@@ -1,7 +1,7 @@
 ---
 name: feature-spec
 description: Use when turning a vague or short feature idea into a full specification before implementation — a one-line/paragraph request like "add X", a wishlist item, or a feature handed off in an automated/unattended pipeline for a downstream agent to build. Triggers - "write a spec for…", "turn this idea into a spec", "flesh out this feature", specifying behavior / states / edge cases / defaults / acceptance criteria before coding.
-allowed-tools: Read, Glob, Grep, Task, Write, AskUserQuestion
+allowed-tools: Read, Glob, Grep, Agent, Write, AskUserQuestion
 ---
 
 # Feature Spec
@@ -58,13 +58,20 @@ one-line reason**:
 | Tier | When | What you produce |
 |---|---|---|
 | **SKIP** | Trivial / single-component / bugfix | No spec. State 1–3 assumptions and stop. |
-| **LITE** | One surface, one clear job | Core spine only; declarative acceptance criteria; self-audit. No reviewer subagent. |
-| **FULL** | Multi-surface / novel / user-facing | Core spine + applicable modules + EARS/Gherkin + self-audit + reviewer subagent. |
+| **LITE** | One surface, one clear job | Core spine only; declarative acceptance criteria; self-audit. No reviewer subagent. **≤ ~80 lines.** |
+| **FULL** | Multi-surface / novel / user-facing | Core spine + applicable modules + EARS/Gherkin + self-audit + reviewer subagent. **≤ ~400 lines**, more only when Decisions Needed genuinely requires it. |
 
 **Feature type: UI or non-UI.** This gates the UI module. A backend/API/job feature
 never gets an accessibility, i18n, or design-token checklist.
 
 When unsure between tiers, pick the smaller one — you can always deepen a section.
+
+**Size discipline.** The line budgets are caps, not targets. A spec for a bug fix
+never exceeds LITE unless the fix changes a contract — a three-sentence bug report
+once produced a 1,461-line spec plus three ruling documents. Specs live wherever the
+project already keeps them and the project's archive convention applies; this skill
+never grows an unbounded active set. When the spec directory holds more than a couple
+of dozen active specs with no archive in sight, say so in one line under the handoff.
 
 ## The pipeline
 
@@ -86,6 +93,14 @@ LITE spec to look like a FULL one.
 6. **Scope slicing** — MVP → v1 → vision + explicit Out-of-Scope.
 7. **Acceptance criteria** — notation per `references/notation.md` (declarative for
    LITE; add EARS + Gherkin for FULL).
+
+**Producer/consumer scan (FULL):** for every behavior the feature changes, name both
+sides of the data flow — what produces the data or state, and what consumes it — and
+record the pair in the interface-contract section. A feature that scopes in a consumer
+while scoping its producer out is **flagged**, not assumed safe: the costliest spec
+defect on record was a timing change in a consumer that the spec treated as not
+touching the producer, so nothing in the run analysed what it did to the producer's
+ordering.
 
 **Conditional UI module (only when feature type = UI):** load
 `references/state-and-interaction.md` and `references/accessibility-i18n.md` and walk
@@ -113,27 +128,30 @@ note them.
 - **Self-audit (every tier):** end by listing any template/checklist items you did
   not address, then fix them. Do not claim done with the list non-empty.
 - **Reviewer subagent:** on FULL (and *always* in autonomous mode, where it's the
-  only gate left), dispatch a fresh general-purpose agent via **Task** with read-only
+  only gate left), dispatch a fresh general-purpose agent via **Agent** with read-only
   tools. Give it the spec + the template/checklist criteria and **not** your
   reasoning. Ask it to report missing coverage (states, edge cases, a11y/i18n,
   defaults, loop-handoff fields). Revise before finishing.
 
 ## Output and handoff
 
-- **Interactive:** present the spec, then on the user's go write
-  `docs/specs/<feature-slug>.md` in the target repo. Create the `docs/specs/` dir
-  only at write time — never while drafting (no empty dirs left in the tree).
-- **Autonomous:** write `docs/specs/<feature-slug>.md` directly and return a final
-  message in this exact shape so the loop can parse it:
+Write to the project's spec location when it has one; `docs/specs/<feature-slug>.md`
+is the default. Create the directory only at write time — never while drafting (no
+empty dirs left in the tree).
+
+- **Interactive:** present the spec, then write it on the user's go.
+- **Autonomous:** write it directly and return a final message in this exact shape so
+  the loop can parse it:
 
   ```
-  SPEC: docs/specs/<slug>.md
+  SPEC: <path to the spec>
   TIER: LITE|FULL
   DECISIONS_NEEDED: none | <n> (highest: high|normal)
   ```
 
-  Clean specs route straight to implementation; specs with `high` flags get
-  surfaced to a human.
+  Clean specs route straight to planning; specs with `high` flags get surfaced to a
+  human. **This skill stops at the spec.** The next stage reads `SPEC:` and turns it
+  into an implementation plan — do not write the plan, the file map, or the code here.
 
 ## Hard rules
 
@@ -144,8 +162,17 @@ note them.
   feature type = UI, a11y and i18n are non-optional sections, even when the change
   "seems too small to need them."
 - **Document every assumption.** An assumption not written down is a silent bug.
+- **Claims about current behavior are measured, not inferred.** Any statement of the
+  form "X currently does / doesn't Y", and every root-cause diagnosis, must come from
+  running or inspecting the artifact — a measurement, a log, a test run — and the spec
+  must say how it was measured. If it cannot be measured now, write it as `ASSUMED`
+  and list it under Decisions Needed. Reading the source and reasoning about it is
+  inference, not measurement. Two projects independently had to invent "the builder
+  measures and overturns the spec" because specs named root causes that measured false.
+- **Name both sides of every changed data flow.** A consumer scoped in with its
+  producer scoped out is a flagged decision, never a silent one.
 - **Right-size depth to tier.** Padding a LITE spec is the same defect as a thin
-  FULL spec.
+  FULL spec, and both tiers have a line cap.
 
 ## Common mistakes
 
@@ -158,6 +185,11 @@ note them.
   `## Decisions Needed`, severity-tagged, not scattered in paragraphs.
 - **Over-asking interactively.** Questions that don't change the build, or re-ask
   inferable things, make the skill annoying. Assume and document those.
+- **Asserting a root cause read off the source.** A confident diagnosis that nobody
+  measured is the defect that makes downstream builders distrust every spec. Measure,
+  or mark it `ASSUMED`.
+- **Specifying the reader and forgetting the writer.** Changing when or how something
+  is consumed almost always changes what the producer must guarantee.
 
 ## Gotchas
 

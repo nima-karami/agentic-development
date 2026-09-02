@@ -1,7 +1,7 @@
 ---
 name: architecture-critic
 description: Use when a written feature design, plan, spec, or ADR is about to be implemented and a fresh-eyes architecture review is wanted before code is written. Triggers - "review this architecture", "is this design ready to build", "architecture sanity check before I start", "check this design for over-engineering", reviewing boundaries / coupling / cohesion / premature abstraction / data & failure modeling prior to implementation.
-allowed-tools: Read, Glob, Grep, Task, Write, AskUserQuestion
+allowed-tools: Read, Glob, Grep, Agent, Write, AskUserQuestion
 ---
 
 # Architecture Critic
@@ -29,7 +29,7 @@ any house pattern.
 
 - A design / plan / spec / ADR exists in writing and you're about to build it.
 - You ask (or are asked) "is this architecture sound / ready to build?"
-- Right after `writing-plans`, before `executing-plans` / implementation.
+- A plan has just been written and implementation has not started.
 
 ## When NOT to use
 
@@ -63,7 +63,8 @@ any house pattern.
 Find the artifact under review. Default search order:
 
 1. The file the user named, if any.
-2. Latest in `docs/superpowers/specs/` (superpowers spec convention).
+2. The project's documented spec/plan location — check the instruction file and the
+   docs index for where specs and plans are kept, then take the latest.
 3. A `DESIGN.md` / `ARCHITECTURE.md` / plan file in the repo.
 
 If you find none, **stop** and ask the user to point you at the written design.
@@ -71,7 +72,7 @@ If several plausibly match, confirm via `AskUserQuestion` which one to review.
 
 ## Step 2 — Dispatch the fresh critic
 
-Use the **Task** tool to spawn one subagent (general-purpose). Give it read-only
+Use the **Agent** tool to spawn one subagent (general-purpose). Give it read-only
 tools (Read, Glob, Grep) so it can verify claims against the actual repo, and the
 prompt below. Fill the two bracketed slots; change nothing else.
 
@@ -105,7 +106,11 @@ prompt below. Fill the two bracketed slots; change nothing else.
 > 3. **Pattern restraint (forces-based)** — every pattern solves a stated force; no
 >    prestige abstractions or premature layering; rejected alternatives noted.
 > 4. **Data & state modeling** — system of record clear; invariants & consistency
->    model explicit; validation at trust boundaries.
+>    model explicit; validation at trust boundaries; **producer/consumer
+>    completeness**: every data flow the design changes names both sides — what
+>    writes the data or state and what reads it. A design that changes a consumer
+>    (timing, ordering, shape, when it reads) while leaving its producer unexamined
+>    or explicitly out of scope is a finding, not an omission to be excused.
 > 5. **Change tolerance (YAGNI)** — abstractions only at justified seams;
 >    speculative machinery flagged; future seams *named, not built*.
 > 6. **Failure & scale realism** — answer "what breaks this?" (concurrency, retries,
@@ -140,7 +145,7 @@ prompt below. Fill the two bracketed slots; change nothing else.
 | 1 | Requirement & quality-attribute fidelity | Goals, non-goals, constraints explicit; 2-3 dominant quality attributes named |
 | 2 | Boundary quality (cohesion/coupling) | Bounded contexts + ownership clear; change-together grouped; no god objects; cross-domain via public interfaces |
 | 3 | Pattern restraint (forces-based) | Every pattern solves a stated force; no prestige abstractions; rejected alternatives noted |
-| 4 | Data & state modeling | System of record clear; invariants & consistency model explicit; validation at trust boundaries |
+| 4 | Data & state modeling | System of record clear; invariants & consistency model explicit; validation at trust boundaries; every changed data flow names both its producer and its consumer |
 | 5 | Change tolerance (YAGNI) | Abstractions only at justified seams; speculative machinery flagged; future seams named not built |
 | 6 | Failure & scale realism | "What breaks this" answered; scale right-sized to stated need |
 | 7 | Decision capture & legibility | Significant decisions have rationale + rejected alternatives |

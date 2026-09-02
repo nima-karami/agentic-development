@@ -1,62 +1,88 @@
-# Parallelism and unattended detach
+# Scheduling and unattended detach
 
-## Parallel vs. sequential — driven by the dependency graph
+The conductor decides **what runs when, and how many at once**. *How* an item is built
+inside its slot — workspace isolation, executor briefs, test discipline — belongs to
+`build-and-verify`, not here.
 
-The spec phase produces a *provisional* dependency graph. Spec-time independence is
-a hypothesis — two features that sound unrelated can still touch the same files.
-**Confirm disjointness against the Phase 2 plans' actual file lists before fanning
-out**, and only then commit to parallel. Use the graph, don't guess:
+## The dependency graph
 
-- **Truly independent features** (disjoint files, no ordering between them) → run
-  concurrently. Give each an isolated workspace via `superpowers:using-git-worktrees`,
-  then fan out with `superpowers:dispatching-parallel-agents`.
-- **Dependent features** (one needs another's output, or they touch shared files)
-  → run **sequentially** in dependency order. A dependent task becomes selectable
-  only when every task in its `deps` is `done`.
+The spec phase produces a *provisional* graph. Spec-time independence is a hypothesis:
+two items that sound unrelated routinely touch the same files.
+
+- **Confirm disjointness against the plans' file maps and `CLAIMS:` lines before fanning
+  out.** Only a plan-level file map is evidence; a spec's sense of separateness is not.
+- **Dependent items** (one needs another's output, or they share files) run
+  **sequentially** in dependency order. An item becomes selectable only when every id in
+  its `deps` is `done`.
 - **When unsure, serialize.** Mistaken parallelism causes merge corruption and
   hard-to-trace state collisions; the wall-clock saving isn't worth a poisoned run.
 
-Each parallel feature lands through Phase 5 (verify) and Phase 6 (integrate)
-independently; the conductor merges verified branches **one at a time** and runs the
-**full verify on the merged tree before fast-forwarding `main`** — never ff an
-unverified merge, since per-feature verify in isolation misses cross-feature breakage
-and bad conflict resolutions. Shared entry files (global styles, app/root entry, DI
-or plugin registries, route tables) are the usual collision points even between
-otherwise-independent features; route those merges through one serial lane. Starting
-each subagent from `git reset --hard <base>` before it begins keeps rebase churn down.
+## Serialization points
 
-**Worktree hygiene.** Every subagent operates only inside its own worktree. A
-subagent that runs `npm ci`/build/test against the shared main checkout (wrong cwd)
-can wipe its `node_modules` or build output and break `main` mid-run — confine all
-mutating commands to the worktree.
+Some paths force serial work no matter how disjoint the feature *logic* is:
+
+- **Shared entry files** — global stylesheet, app/root entry, DI or plugin registry,
+  route table, wire-protocol definition. Two items editing one of these are not
+  parallel, they are a merge conflict scheduled in advance.
+- **Exclusive claims** — the plan's `CLAIMS:` line lists paths only one task may hold.
+  Two candidate groups whose claims intersect run in series; the second starts from the
+  first's merged result, not from the shared base.
+- **Machine-level singletons** — a fixed port, a lockfile, a database or emulator
+  instance, a shared temp or profile directory. Items contending for one of these
+  serialize even when their files are disjoint; concurrent contenders fabricate failures
+  that look like regressions.
+- **The full gate itself** never runs under concurrent executor load. Two concurrent
+  runs reap each other and produce nonsense that gets mistaken for a regression.
+
+## Choosing the width
+
+- One group, or intersecting claims → **solo**. Delegation re-pays exploration context
+  per executor and buys no parallelism here.
+- Two or more plan-proven file-disjoint groups with no claim overlap → **delegated**,
+  one executor per group, dispatched in a single message, concurrency capped low (four
+  is a practical ceiling; lower when the gate is slow or machine-bound).
+- Record the chosen topology and its reason in the item's ledger entry. A later resume
+  reads the decision instead of re-deriving it.
+
+## Integration order
+
+Each parallel group lands through review and runtime QA independently; the conductor
+merges verified branches **one at a time** and re-runs the full gate on the integrated
+tree before advancing the mainline. Merges that touch a shared entry file go through one
+serial lane, last. Never advance the mainline on an unverified merge — per-item
+verification in isolation misses cross-item breakage and bad conflict resolutions.
 
 ## Detached / unattended runs
 
-The in-session conductor is the portable default. To genuinely "kick off and walk
-away," run the loop as a detached/long-running task — this part depends on harness
-features, so treat it as adaptation, not gospel.
+The in-session conductor is the portable default. To genuinely "kick off and walk away,"
+run the loop as a detached long-running task — this part depends on harness features, so
+treat it as adaptation, not gospel.
 
 What the detach needs, whatever the harness:
 
-- **A durable driver.** A background or scheduled task that re-enters the loop,
-  reads the ledger, advances one pass, and persists. The ledger (not the chat) is
-  what survives between wake-ups — this is why state lives on disk.
-- **A non-skippable completion gate.** Bind the verify harness to a stop hook so a
-  feature (or the run) cannot be declared done while gates fail: the hook runs the
-  checks and, on failure, blocks the stop and feeds the failure back into the loop.
-  This is what removes "done" from the model's discretion.
-- **Post-edit checks.** Optionally run formatters/linters on file-change hooks so
-  trivial fixes don't burn loop iterations.
-- **No interactive prompts anywhere.** Every downstream skill must run in its
-  autonomous/non-interactive mode; a single blocking question hangs an unattended
-  run indefinitely. Decisions go to `blockers.md`, never to a prompt.
+- **A durable driver.** A background or scheduled task that re-enters the loop, reads
+  the ledger, advances one pass, and persists. The ledger, not the chat, is what survives
+  between wake-ups — this is why state lives on disk.
+- **A non-skippable completion gate.** Bind the gate to a stop hook so an item (or the
+  run) cannot be declared done while checks fail: the hook runs them and, on failure,
+  blocks the stop and feeds the failure back into the loop. This is what removes "done"
+  from the model's discretion.
+- **A mandate the driver can check.** The stop condition is "every item done or blocked
+  **and** the mandate spent", not "the queue is empty" — otherwise a detached run
+  finishes its self-made list in the first hours of a long budget and idles.
+- **Post-edit checks.** Optionally run formatters/linters on file-change hooks so trivial
+  fixes don't burn loop iterations.
+- **No interactive prompts anywhere.** Every stage skill must run in its
+  autonomous/non-interactive mode; a single blocking question hangs an unattended run
+  indefinitely. Decisions go to `blockers.md`, never to a prompt.
 
 If the harness lacks durable background execution or stop hooks, fall back to the
-in-session conductor and accept that the run pauses when the session does —
-resuming cleanly from the ledger when restarted.
+in-session conductor and accept that the run pauses when the session does — resuming
+cleanly from the ledger when restarted.
 
 ## Resumption after compaction or restart
 
-On any resume, before acting: re-read `goal.md`, `tasks.yaml`, and `blockers.md`.
-Treat a stale `in_progress` task as `todo` and re-verify rather than trusting it was
-finished. Never reconstruct progress from memory.
+On any resume, before acting: re-read `goal.md`, `tasks.yaml`, and `blockers.md`. Treat a
+stale `in_progress` item as `todo` and re-verify rather than trusting it was finished.
+Re-read the mandate and how much of it is spent before deciding the run is over. Never
+reconstruct progress from memory.

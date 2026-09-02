@@ -1,6 +1,6 @@
 ---
 name: solidify-repo
-description: Solidify, harden, or prep a repository for human/agent collaboration. Audits a repo against an evidence-based rubric (instruction files, deterministic checks, a one-command verify harness, security gate, runtime/end-to-end QA) and applies fixes with per-category approval. Use when asked to "solidify", "harden", "prep for agents", "make agent-ready", or "audit a repo for AI/human collaboration".
+description: Solidify, harden, or prep a repository for human/agent collaboration. Audits a repo against an evidence-based rubric (instruction files, deterministic checks, a one-command verify harness, security gate, runtime/end-to-end QA) and applies fixes with per-category approval. Use when asked to "solidify", "harden", "prep for agents", "make agent-ready", "audit a repo for AI/human collaboration", "re-audit", "check for gate drift", or "verify the gate still enforces what the docs claim".
 allowed-tools: Read, Glob, Grep, Bash, Edit, Write, WebSearch, WebFetch, AskUserQuestion
 ---
 
@@ -61,8 +61,39 @@ moves for agent-readiness. Do not silently expand scope beyond them.
    tests assert on internals — agents pass them while shipping blank screens and dead
    buttons; this is the layer that catches that.
 
+## Modes — first pass or re-audit
+
+A previous pass does not retire this skill; gates rot after they are installed. Before
+auditing, look for evidence of an earlier pass: a previous report (repo root, or the
+project's run-artifact directory) and any ADR recording the prep. If one exists, run
+**re-audit (drift) mode** — the full audit below, plus a delta:
+
+- **Re-score every category against the *current* rubric**, not the rubric the earlier
+  pass used. The rubric moves: a repo was once declared done over a gate that had
+  neither secret scanning nor runtime QA, because neither was separately scored yet.
+  Say in the report that the re-score is against today's rubric.
+- **Diff the scores** against the previous report, and account for every change.
+- **List gates that became advisory or non-gating.** A check that still runs but no
+  longer fails the build has regressed to decoration — duplication shipping ~248 lines
+  of clones green, complexity "advisory" over a 49-function backlog.
+- **List warning counts that grew.** A warning class going 1 → 12 → 17 is drift with a
+  number attached.
+- **List every doc claim the gate does not actually keep** (see the enforcement check
+  in Step 2).
+- **List standing waivers that contradict the gate rule.** An instruction file, goal
+  file, or run doc saying "no verify between commits" while the repo's own CLAUDE.md
+  says the gate runs every loop is a conflict to surface, not a setting to honour
+  quietly.
+
+Emit the drift table (Step 3) alongside the category scores.
+
 ## Hard rules
 
+- **"The repo already satisfies every category" is a claim requiring the delta audit,
+  never a reason to skip.** It was accepted by name for five consecutive runs in one
+  repo while the gate quietly rotted underneath it. Prove it: scores re-derived
+  against the current rubric, every documented gate claim verified, warning counts
+  compared to the previous pass. "Right-sized away" without that delta is a skip.
 - **Refuse to apply changes on a dirty working tree.** Audit is fine; applying is
   not. Tell the user to commit/stash first, so every change you make is reviewable.
 - **One category at a time.** Show the plan/diff, get a yes/skip via
@@ -154,6 +185,15 @@ browser harness where there's no UI; match the artifact. Agents routinely ship a
 green build that renders a blank screen or a dead button, which is exactly what this
 layer is for.
 
+**Enforcement check (applies to all five categories).** A gate counts only if it is
+demonstrably enforced. For **every** check the repo's docs claim — instruction file,
+style guide, README, ADR — prove the claim: read the config for what it actually
+covers, or run the check against a deliberate violation and confirm a non-zero exit.
+A documented check that does not fail on a violation scores **Missing**, not Weak — a
+style guide claiming "unused exports fail" over a dead-code gate that never looks at
+exports is worse than no gate at all, because everyone downstream trusts it. Score a
+check that runs but cannot fail the build the same way.
+
 ## Step 3 — Write the report
 
 Write the report as a table of the five categories with score + evidence + the
@@ -161,6 +201,17 @@ specific change you propose for each — the artifact the user reviews before an
 Place it at `solidify-report.md` in the repo root, **unless the repo already has a
 docs convention** for run artifacts (e.g. a `docs/runs/<date>-<name>/` layout), in
 which case follow it rather than dropping a stray file at the root.
+
+**In re-audit mode, put a short drift table above the category table:**
+
+| Category / gate | Previous | Now | Drift |
+|---|---|---|---|
+| <category, named check, or doc claim> | Pass | Weak | went advisory / warnings 1 → 17 / claim not enforced / waiver in `<file>` |
+
+One row per category whose score moved, per gate that went advisory or non-gating, per
+warning count that grew, per doc claim the gate does not enforce, and per standing
+waiver that contradicts the gate rule. If nothing drifted, the table is one row saying
+so — state it, never omit the table.
 
 ## Step 4 — Apply, one category at a time (gated)
 
