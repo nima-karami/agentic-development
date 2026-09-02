@@ -28,8 +28,7 @@ rather than either document alone.
 
 Skills come from two evidence sources: a research pair, or **field retros** from the
 projects that run the skills for real (their `docs/runs/*/report.md|retro.md`).
-Authoring is TDD for documentation, done natively (the `superpowers` plugin is
-**banned** here — do not invoke any of its skills):
+Authoring is TDD for documentation, done with native planning and subagents:
 
 1. **Design first.** Agree the skill's scope, handoff contract, and hard rules in
    conversation before writing. Specs and plans stay local and untracked.
