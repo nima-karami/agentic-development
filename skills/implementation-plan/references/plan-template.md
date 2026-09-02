@@ -24,6 +24,12 @@ crosses each seam. Draw it whenever the flow has more than three hops.>
 ## Settled decisions — do not re-litigate
 <one line each, carried from the spec and from the level-locking conversation>
 
+## Spec staleness        <!-- delete when every spec claim measured true -->
+<one line per spec claim that grounding measured false — a retired route, a deleted
+component, a field that never existed: what the spec claims, what was measured (path
+and line), and how this plan proceeds instead. Planning silently around a stale claim
+hides it from everyone downstream.>
+
 ## Global constraints
 <one line each, exact values; every task implicitly includes these: the gate command;
 version floors; the repo conventions the executor must follow, copied concretely from
@@ -80,12 +86,12 @@ the fix that keeps the locked decision.
 ### Slice N: <name>
 
 **Check:** <the exact test, command, or observable flow that proves this slice —
-runnable on its own, ~10 minutes of work to reach>
+runnable on its own against the state these tasks leave behind>
 
 **Parallel groups:** G1: T1, T3 · G2: T2 · Serial: T4
 **Claims (serial lane):** `exact/shared/entry/file`
 
-#### Task N.1: <name>
+#### Task N.1: <name>        <!-- ~10 minutes: one deliverable, one executor -->
 
 **Files:**
 - Create: `exact/path/file.<ext>`
@@ -105,6 +111,10 @@ runnable on its own, ~10 minutes of work to reach>
 - [ ] Run `<the test command>` — expect FAIL (<why: module missing / behavior absent>)
 - [ ] Implement the minimum to pass, within the signatures above
 ````
+
+**A slice is the smallest group of tasks that reaches its check** — sometimes one
+task, sometimes four. Size the tasks by the clock and the slice by the check; a group
+with no check of its own is a milestone, and gets split until each piece has one.
 
 **Test-first is the default step shape** — a test never watched failing proves
 nothing. Two carve-outs, named per task, never assumed:

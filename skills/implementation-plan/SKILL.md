@@ -20,7 +20,7 @@ Two opposite failure modes, both seen repeatedly in the field:
 
 1. **Over-production.** A plan that restates the spec at lower fidelity is a defect,
    not diligence. A three-sentence bug report once produced a four-figure-line spec
-   plus a plan that added nothing; the plan step was deleted as over-production.
+   plus a plan that added nothing.
 2. **Under-specification.** Placeholders, "similar to task N", a consumer scoped
    without its producer, a signature that no task defines. Each one is a guess the
    executor makes badly.
@@ -78,10 +78,13 @@ task). Explicit signal wins.
   producer is the highest-cost defect this stage can ship.
 - **When parallel disjointness is uncertain, serialize.** Merge corruption costs more
   than the wall-clock saved.
-- **Follow the project's existing plan-file convention; never invent a layout.**
+- **Follow the project's existing plan-file convention; never invent a layout.** The
+  convention is location, naming, and section order — that is its whole extent.
 - **The plan file carries no boilerplate header** — no banner, no instruction to invoke
   a named workflow, no tooling advert. Such a header outlives the workflow that
-  mandated it and sits, stale, in every plan file in the repo.
+  mandated it and sits, stale, in every plan file in the repo. **Where the two rules
+  meet, this one wins:** a banner or "invoke workflow X" line carried by every existing
+  plan file is stale boilerplate, not the convention, and is not copied forward.
 - **Never weaken, narrow, mock out, skip, or defer a gate to get green.** Gates are
   development discipline, not production-only. A gamed gate is a failed task — the
   plan never schedules one, and never plans around a red gate by lowering it.
@@ -101,28 +104,33 @@ task). Explicit signal wins.
 When unsure between tiers, pick the smaller one — a section can always be deepened.
 Padding a LITE plan is the same defect as a thin FULL one.
 
-**Check the work isn't already built before you plan it.** A spec can be handed over
-after the fact — an earlier run, a lane that landed while the spec sat in a queue — and
-a plan for work that exists sends an executor to build it twice. Prove it either way,
-in this order: the version-control history of the spec file and of its slug; a search of
-the tree for the identifiers the spec fixes (types, routes, flags, file names); then
-each acceptance criterion against the code that would satisfy it. If it is built, SKIP
-and cite the commits.
+**Check the work isn't already built before you plan it.** A spec can arrive after the
+fact — an earlier run, a lane that landed while the spec sat in a queue — and a plan for
+existing work sends an executor to build it twice. Prove it in this order: the
+version-control history of the spec file and of its slug; a tree search for the
+identifiers the spec fixes (types, routes, flags, file names); then each acceptance
+criterion against the code that would satisfy it. If built, SKIP and cite the commits.
 
-**That SKIP has one exemption, and it is the only one.** When the reason is "already
-built", the artifact *is* the evidence of implementation — the commits, plus any spec
-detail deliberately reversed or superseded downstream — and it replaces the inline file
-map. Every other SKIP still owes all three: the inline file map, the verification
-command, and the deviation rule.
+**That SKIP has one exemption, and only that one.** When the reason is "already built",
+the evidence of implementation — the commits, plus any spec detail deliberately reversed
+or superseded downstream — replaces the inline file map. Every other SKIP still owes all
+three.
 
 ## Step 1 — Ground it
 
 - Read the spec **in full**. Its acceptance criteria are the coverage target in Step 6.
 - **Detect the project's plan-file convention** — an existing plans directory, a
   per-task/run folder that already holds the spec and reports, or wherever the spec
-  stage wrote. Follow it exactly. If none exists: interactive, ask where; autonomous,
-  put the plan beside the spec it implements. Create the directory at write time
-  only, never while drafting.
+  stage wrote. Follow it exactly — location, naming, section order, and nothing
+  further. Following it never means reproducing a banner or an "invoke workflow X"
+  line the existing plan files happen to carry; copy the shape, drop the boilerplate.
+  If none exists: interactive, ask where; autonomous, put the plan beside the spec it
+  implements. Create the directory at write time only, never while drafting.
+- **Read the stack from the repository, not from the request.** Language and version
+  floors, package manager, and the gate / test / build commands come from the
+  manifests, lockfiles, and config in the tree — the invoker's description of them is
+  a hint, not a source. Where the two disagree, the repo wins and the plan says so in
+  one line.
 - Read the repo's style authority in full before any name enters the plan — naming and
   placement are design, and a guessed convention gets baked into every task.
 - Delegate the code reading that informs the plan — mapping call sites, checking
@@ -134,7 +142,11 @@ command, and the deviation rule.
   an assumption that nothing in the code stated.
 - A claim about current behavior requires measurement, not inference from source. If
   the spec asserts something about how the system behaves today and the plan depends
-  on it, verify it before planning around it. Specs assert things that measure false.
+  on it, verify it before planning around it. Specs assert things that measure false —
+  a retired route, a deleted component, a field that never existed. Every claim that
+  measures false is recorded in the plan's staleness section with what was measured
+  and how the plan proceeds; planning quietly around it hides it from everyone
+  downstream.
 
 ## Step 2 — Lock the levels, one at a time
 
@@ -159,12 +171,15 @@ owner, not by topic (a folder named after a data topic is the classic tell). Loc
 
 **4. Slices, groups, and claims.**
 
-- A **slice** is ~10 minutes of work, independently verifiable, with a **named check**
-  (the exact test, command, or observable flow that proves it). A slice that cannot
-  be checked on its own gets split — slice size is what keeps a wrong turn from
-  staying invisible until the end.
-- Tasks live *inside* slices as the executor's decomposition. Fold setup and
-  scaffolding into the task whose deliverable needs them.
+- A **task** is the ~10-minute unit: one deliverable, one executor, small enough that
+  a wrong turn surfaces while it is still cheap to undo. Fold setup and scaffolding
+  into the task whose deliverable needs them.
+- A **slice** is a verifiable seam: the smallest group of tasks that leaves the tree
+  in an independently checkable state, carrying a **named check** (the exact test,
+  command, or observable flow that proves it). The clock sizes the task; the check
+  sizes the slice — one task is a legitimate slice when one task reaches a check, and
+  a group that cannot be checked on its own is not a slice, it gets split until every
+  piece has its own.
 - **Parallel groups:** tasks whose `Files:` sets do not overlap **and** that touch no
   shared entry file form the parallel groups. Write the partition into the slice:
   `**Parallel groups:** G1: T1, T3 · G2: T2 · Serial: T4`.
@@ -225,11 +240,28 @@ of them unresolved; fix inline.
 | 6 | **Producer/consumer** | A changed behavior with only one side named |
 | 7 | **Handoff arithmetic** | `SLICES` / `GROUPS` / `CLAIMS` asserted rather than counted from the body |
 
-**A SKIP runs this gate too**, against the inline output instead of a plan file: check
-1 (coverage — every acceptance criterion has somewhere to be built) and check 6
-(producer/consumer). Then write one line, always, whatever the tier:
-`Self-review: <n>/7 applicable — <reason>`. Skipping the gate in silence because there
-is no file is how a SKIP ships an uncovered criterion.
+**The gate leaves an artifact.** A check that reports nothing cannot be told apart
+from a check that never ran. In autonomous mode, report all seven as a compact block
+placed immediately before the handoff block, one line per check, format
+`#n <check>: ok | fixed: <what> | n/a: <why>`:
+
+```
+#1 Coverage: ok
+#2 Placeholder scan: fixed: named the two errors T2.1 left as "appropriate handling"
+#3 Signature consistency: ok
+#4 Placement: ok
+#5 Caller scan: fixed: moved the exported builder down into Slice 2
+#6 Producer/consumer: ok
+#7 Handoff arithmetic: n/a: inline SKIP, no counted body
+```
+
+An `n/a` always carries its reason; a blank one is a skipped check wearing a label.
+Interactive mode may compress the block to the summary line alone.
+
+**A SKIP runs this gate too**, against the inline output: check 1 (coverage — every
+acceptance criterion has somewhere to be built) and check 6 (producer/consumer). Then,
+whatever the tier, one line: `Self-review: <n>/7 applicable — <reason>`. A gate kept
+silent because there is no file is how a SKIP ships an uncovered criterion.
 
 A plan revised after this gate — a narrowed scope, a task absorbed into another —
 gets each touched slice re-read end to end against its own check before the revision
@@ -239,8 +271,8 @@ check assumed was already on.
 ## Step 7 — Handoff
 
 **Interactive:** present the plan, write the file on the user's go, then emit the
-block. **Autonomous:** write the file and end with exactly this block, so the loop
-can parse it without re-reading prose:
+block. **Autonomous:** write the file, report the Step 6 checks, and end with exactly
+this block directly beneath them, so the loop can parse it without re-reading prose:
 
 ```
 PLAN: <path or "inline">
@@ -269,8 +301,9 @@ were still changing.
   touch the same files. Disjointness is checked against the actual `Files:` sets.
 - **Leaving shared entry files unclaimed.** They are where independent lanes collide.
 - **Asking in autonomous mode.** It hangs the pipeline. Flag and continue.
-- **Slices sized by feature, not by check.** "The whole settings screen" is not a
-  slice; it is a milestone with no verifiable middle.
+- **Slices sized by feature, or by the clock.** "The whole settings screen" is not a
+  slice; it is a milestone with no verifiable middle. The clock sizes tasks — ~10
+  minutes each — while the slice is sized by the check it can actually reach.
 
 ## Gotchas
 
@@ -283,9 +316,9 @@ were still changing.
 - **Detect the plan location; don't standardize it.** Two repos with a plans folder
   each still disagree on its path. Follow what is there.
 - **Delegated code reading is cheaper than reading the repo yourself, but only with
-  citations.** A finding without a file and line is not a finding — and the file is a
-  repository-relative full path. A basename matches four files in most repos and sends
-  the executor to the wrong one.
+  citations.** A finding without a repository-relative full path and a line number is
+  not a finding; a basename matches four files in most repos and sends the executor to
+  the wrong one.
 
 ## Reference files
 
