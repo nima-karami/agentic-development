@@ -18,6 +18,17 @@ from its description and observed behavior, say so in the report, and never bloc
 plus the project-binding block. The gates listed per archetype below are *in addition*
 to those.
 
+**Two invocation shapes, and why every stage must say which artifacts it owns.** A
+per-task stage can also be invoked **per item** by `loop`, once for each entry in a
+backlog run. The same skill therefore runs many times inside one conductor's run, and a
+file it legitimately owns per task — a run report, a run directory, an archive — becomes
+a file it must *not* write when a conductor owns the run. Each archetype's entry below
+states its artifacts; the emitted skill states, in its own body and its handoff block,
+which of them it owns **per task** and which it hands to the conductor **per item**, and
+how it tells the two cases apart when the invoker did not say. Left unstated, each item's
+run silently overwrites the record of the one before it, and no per-skill review can see
+it — which is why the suite-level write-ownership table in `packaging.md` exists.
+
 ---
 
 ## manage — the desk charter
@@ -182,14 +193,16 @@ to those.
 - **Shape notes:** scope is settled and restated first, including every variant, never
   just the reference one. Design-fidelity work is verified by looking, side by side
   against a baseline captured *before* the original rendering is deleted. A report
-  template as a plugin asset keeps reports comparable across runs.
+  template in the skill's `references/` keeps reports comparable across runs; the report
+  itself goes to a filename no other stage writes.
 
 ## deliver — the project's shipping flow
 
 - **Seed:** none. Fully project-bound.
 - **Include when:** the project has a delivery flow — pull-request tooling, a release
   or preview script, a staged deploy. Skip when committing to the trunk is the whole
-  story.
+  story. This rule decides, including for a single-repo app: the preset's shortlist is a
+  default, not an exclusion.
 - **Bindings:** the description format and voice; the creation tooling and its known
   footguns (auth scopes, argument quirks, comment-authorship marking); the title rule;
   the ordered cross-repo sequence when a release spans repositories.
@@ -213,7 +226,11 @@ to those.
   no script checks this for you. Every branch must be an ancestor of the mainline before
   anything is touched; forcing past that is the user's call alone, never taken on the
   agent's own judgment.
-- **Shape notes:** this is a procedure, not a delete. Ask **once** whether anything in
+- **Shape notes:** state the two invocation shapes explicitly — per task it owns the run
+  report and the archive; under a conductor it writes the item's outcome into the
+  conductor's ledger and touches neither the report nor the conductor's live state, and
+  says which case it took in its handoff block. This is a procedure, not a delete. Ask
+  **once** whether anything in
   the working artifacts should survive, and default to delete — keeping by reflex is how
   repositories fill with stale plans. A constraint that genuinely outlives the task
   belongs in the repository's docs as a line, not as an archived plan. Say explicitly
@@ -253,8 +270,10 @@ to those.
   question tool; would-be questions become ledger entries. Retry a blocked item at most
   twice, then quarantine it with the reason and move on — an honest blocked beats a fake
   done.
-- **Shape notes:** the ledger on disk is the source of truth and is re-read after every
-  compaction; chat memory never is. Right-size the topology per item rather than fanning
+- **Shape notes:** it states the per-item split from its own side — which artifacts it
+  owns as conductor, and that it tells each per-task stage a conductor is running — so
+  the contract is written at both ends rather than assumed at one. The ledger on disk is
+  the source of truth and is re-read after every compaction; chat memory never is. Right-size the topology per item rather than fanning
   out by default: fanning out one group re-pays exploration context for no gain.
 
 ## retro — improve the suite
@@ -273,7 +292,11 @@ to those.
   strengthen or move, never fork. Never propose weakening a gate as the remedy for a check
   that keeps failing — a repeatedly failing check is a finding about the code or the
   binding.
-- **Shape notes:** classify knowledge gap / enforcement gap / one-off, because each has a
+- **Shape notes:** the seed-drift diff is the one place an emitted skill names a general
+  skill. It names seeds **as diff targets only** — never invoking one, never depending on
+  one being installed — and says so in as many words, with a skip-and-record rule for a
+  seed it cannot find and no hard-coded machine path to look for it at. Beyond that,
+  classify knowledge gap / enforcement gap / one-off, because each has a
   different fix. Collect counter-examples too: they show which investments are paying off
   and should not be disturbed. Apply on approval, bump the version, write the changelog
   entry, and file applied notes away so the top level is exactly the unaddressed set.

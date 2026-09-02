@@ -121,7 +121,11 @@ Two checks the note-reading pass cannot produce:
 
 - **Seed drift.** Each emitted skill against the general skill it was pressed from. Seeds
   gain gates over time; a suite pressed from an old seed is missing every one of them.
-  Carry the improvements across, keeping this project's bindings.
+  Carry the improvements across, keeping this project's bindings. This is the one
+  sanctioned exception to "no pointer outside the plugin": a seed is named **as a diff
+  target only**, never invoked and never depended on. When a seed is not installed, skip
+  that row and record the skip — never block the retro on it, and never hard-code a path
+  to go looking.
 - **Binding rot.** Every path, command and directory the suite names, checked to still
   exist. A renamed docs directory or a moved gate turns a skill into a confident liar, and
   nothing else in the suite looks for this.
