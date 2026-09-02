@@ -22,12 +22,24 @@ apply, but say why in one line rather than leaving them blank.
 - States / transitions the feature moves through:
   (UI: see state catalog. non-UI: lifecycle/status, in-progress, partial,
    failed, retrying, done, expired.)
+- Current behavior (only when the feature changes something that exists) — one row
+  per claim; every claim measured, or marked `ASSUMED` and mirrored into §13:
+
+| Claim about today's behavior | How it was measured (command / log / test / observation) | Measured or ASSUMED |
+|---|---|---|
 
 ## 3. Data / interface contract   (non-UI especially)
 - Inputs (shape, validation, trust boundary):
 - Outputs (shape):
 - Error shapes / failure responses:
 - Invariants / consistency expectations:
+- Producers / consumers (FULL) — one row per data flow the feature changes:
+
+| Data / state | Produced by | Consumed by | Both in scope? |
+|---|---|---|---|
+
+  A "no" in the last column is a flagged decision: say why the other side is safe to
+  leave alone, or bring it into scope.
 
 ## 4. Edge cases & failure modes
 | Condition | Expected behavior / recovery |
@@ -82,3 +94,13 @@ apply, but say why in one line rather than leaving them blank.
 List any section above you left empty or thin without justification, then fix it.
 For UI features, confirm sections 8–11 are actually filled, not skipped because the
 change "seemed small."
+
+Also confirm:
+
+- Every "currently does / doesn't" claim and every root-cause statement names how it
+  was measured, or is marked `ASSUMED` and listed in §13. Inference from reading the
+  source is not a measurement.
+- No changed data flow in §3 names only one side, and every "both in scope? no" carries
+  a written reason.
+- The finished spec is within its tier's line budget (LITE ≤ ~80, FULL ≤ ~400 unless
+  §13 justifies more). Over budget means the tier was wrong or the spec is padded.
