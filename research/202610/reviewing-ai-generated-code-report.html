@@ -1,0 +1,603 @@
+<title>AI Code Review 2026</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, charts as full-width panels, verdict strip at the end. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --fg:#161a20; --fg2:#4b5563; --fg3:#7a8290; --line:#dfe3ea; --track:#edf0f4;
+  --accent:#2a78d6; --accent-soft:#cde2fb; --neg:#e34948; --pos:#008300; --warn:#eda100; --mid:#f0efec;
+  --display:"Bricolage Grotesque",Georgia,serif; --body:"Instrument Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141619; --panel:#1c1f24; --fg:#f1f3f6; --fg2:#b9c0cb; --fg3:#848c99; --line:#2c3139; --track:#262a31;
+  --accent:#3987e5; --accent-soft:#1c3b63; --neg:#e66767; --pos:#3fae3f; --warn:#c98500; --mid:#383835; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141619; --panel:#1c1f24; --fg:#f1f3f6; --fg2:#b9c0cb; --fg3:#848c99; --line:#2c3139; --track:#262a31;
+  --accent:#3987e5; --accent-soft:#1c3b63; --neg:#e66767; --pos:#3fae3f; --warn:#c98500; --mid:#383835; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;padding-inline:clamp(16px,4vw,40px);padding-block:32px 64px;overflow-x:hidden}
+.wrap{max-width:920px;margin:0 auto;display:grid;gap:40px;min-width:0}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(34px,6vw,56px);font-weight:700;letter-spacing:-.02em}
+h2{font-size:24px;font-weight:700;letter-spacing:-.01em}
+h3{font-size:16px;font-weight:600;font-family:var(--body)}
+p{margin:0;max-width:66ch}
+.lede{font-size:18px;color:var(--fg2);max-width:60ch}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
+.sec{display:grid;gap:16px;min-width:0}
+.sec>header{display:grid;gap:6px}
+.take{font-size:16px;color:var(--fg);font-weight:500;max-width:66ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;display:grid;gap:14px;min-width:0}
+.src{font-size:12.5px;color:var(--fg3);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:4px;border:1px solid var(--line);color:var(--fg2);white-space:nowrap}
+.tag.vendor{border-color:var(--warn);color:var(--warn)}
+.tag.measured{border-color:var(--pos);color:var(--pos)}
+.tag.firsthand{border-color:var(--accent);color:var(--accent)}
+.tag.verified{background:var(--pos);border-color:var(--pos);color:#fff}
+.note{font-size:13.5px;color:var(--fg2);max-width:70ch}
+.cap{font-size:12.5px;color:var(--fg3);max-width:70ch}
+.callout{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-left:3px solid var(--fg2);border-radius:0 6px 6px 0;font-size:13.5px;background:var(--track)}
+.callout i{flex:none;width:10px;height:10px;border-radius:2px}
+.list{margin:0;padding-left:18px;font-size:13.5px;color:var(--fg2);display:grid;gap:4px}
+
+/* hero tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:4px;min-width:0}
+.tile .n{font-family:var(--display);font-size:40px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+.tile .l{font-size:13px;color:var(--fg2)}
+.tile .s{font-size:11.5px;color:var(--fg3)}
+
+/* bar charts (HTML, to scale) */
+.bars{display:grid;gap:8px;font-variant-numeric:tabular-nums}
+.row{display:grid;grid-template-columns:minmax(120px,38%) 1fr auto;gap:10px;align-items:center;font-size:13.5px;min-width:0}
+.row .lab{color:var(--fg2);min-width:0;overflow-wrap:anywhere}
+.row .trk{height:14px;background:var(--track);border-radius:3px;position:relative;overflow:hidden}
+.row .fil{position:absolute;top:0;bottom:0;left:0;background:var(--accent);border-radius:0 4px 4px 0;transition:width .4s ease}
+.row .val{font-family:var(--mono);font-size:12.5px;color:var(--fg);min-width:5ch;text-align:right}
+.row:hover .fil{filter:brightness(1.12)}
+/* diverging */
+.div .trk{background:var(--track)}
+.div .trk::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--fg3)}
+.div .fil{border-radius:3px}
+.div .fil.pos{left:50%;background:var(--neg)}
+.div .fil.negv{right:50%;left:auto;background:var(--accent)}
+/* grouped small multiples */
+.multi{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.multi .m{display:grid;gap:8px;min-width:0}
+.multi h3{font-size:13.5px;color:var(--fg2)}
+.multi .row{grid-template-columns:92px 1fr auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--fg2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.c1{background:var(--accent)} .c2{background:#eb6834} .c3{background:#1baf7a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .c2{background:#d95926} :root:not([data-theme="light"]) .c3{background:#199e70}}
+:root[data-theme="dark"] .c2{background:#d95926} :root[data-theme="dark"] .c3{background:#199e70}
+.fil.c1{background:var(--accent)}
+
+/* inline SVG diagrams: every color is a token */
+figure{margin:0;display:grid;gap:8px;min-width:0}
+.dg svg{display:block;width:100%;height:auto}
+.dg text{fill:var(--fg);font-family:var(--body);font-size:13px}
+.dg .t-k{fill:var(--fg3);font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+.dg .t-b{font-weight:600;font-size:13.5px}
+.dg .t-s{fill:var(--fg2);font-size:12px}
+.dg .t-neg{fill:var(--neg)}
+.dg .t-acc{fill:var(--accent)}
+.dg .box{fill:var(--panel);stroke:var(--line);stroke-width:1.5}
+.dg .box.h{fill:var(--accent-soft);stroke:var(--accent)}
+.dg .ln{stroke:var(--fg3);stroke-width:1.5;fill:none}
+.dg .ah{fill:var(--fg3)}
+.dg .back{stroke:var(--neg);stroke-width:1.5;fill:none;stroke-dasharray:5 4}
+.dg .ah-neg{fill:var(--neg)}
+.dg .pill{fill:var(--panel);stroke:var(--accent);stroke-width:1.5}
+.dg .rk-gate{fill:var(--panel);stroke:var(--neg);stroke-width:2}
+.dg .rk-high{fill:var(--panel);stroke:var(--warn);stroke-width:2}
+.dg .rk-norm{fill:var(--panel);stroke:var(--accent);stroke-width:2}
+.dg .rk-mech{fill:var(--panel);stroke:var(--fg3);stroke-width:2}
+.dg .dg-tall{display:none}
+.dg-narrow{max-width:440px}
+@media (max-width:860px){.dg .dg-wide{display:none}.dg .dg-tall{display:block;max-width:420px}}
+
+/* eight-step flow: spine with nodes, return bracket from step 7 to step 1 */
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:34px 1fr}
+.flow li{grid-column:2;display:grid;grid-template-columns:28px 1fr;column-gap:12px;position:relative;padding-bottom:18px;min-width:0}
+.flow li:last-child{padding-bottom:0}
+.flow li::before{content:"";position:absolute;left:13px;top:28px;bottom:0;width:2px;background:var(--line)}
+.flow li:last-child::before{display:none}
+.flow .nd{width:28px;height:28px;border-radius:50%;border:2px solid var(--fg3);background:var(--panel);display:grid;place-items:center;font-family:var(--mono);font-size:12px;color:var(--fg);position:relative;z-index:1}
+.flow li.hu .nd{background:var(--accent);border-color:var(--accent);color:#fff}
+.flow .bd{display:grid;gap:2px;padding-top:3px;min-width:0}
+.flow .k{font-family:var(--mono);font-size:11px;color:var(--fg3)}
+.flow li.hu .k{color:var(--accent)}
+.flow b{font-size:14px}
+.flow .bd span:last-child{font-size:13px;color:var(--fg2)}
+.flow li.ret{grid-column:1;grid-row:1/7;display:block;padding:0;margin:13px -2px -14px 10px;border:2px dashed var(--neg);border-right:0;border-radius:8px 0 0 8px;position:relative}
+.flow li.ret::before{display:none}
+.flow li.ret::after{content:"";position:absolute;right:-6px;top:-7px;border-left:8px solid var(--neg);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.flow li.ret span{position:absolute;left:-1px;top:50%;transform:translate(-50%,-50%) rotate(180deg);writing-mode:vertical-rl;white-space:nowrap;background:var(--panel);padding:6px 0;font-family:var(--mono);font-size:11px;color:var(--neg)}
+.key-hu{background:var(--accent);border-radius:50% !important}
+.key-ag{border:2px solid var(--fg3);background:var(--panel);border-radius:50% !important}
+
+/* segments */
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.seg .panel{gap:8px}
+.seg ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--fg2);display:grid;gap:4px}
+blockquote{margin:0;padding:10px 14px;border-left:3px solid var(--accent);font-size:14px;color:var(--fg);background:var(--track);border-radius:0 6px 6px 0}
+blockquote small{display:block;color:var(--fg3);font-size:12px;margin-top:4px}
+
+/* tables */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);font-weight:600}
+td.num{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+
+/* timeline */
+.tl{display:grid;gap:0;border-left:2px solid var(--line);margin-left:6px}
+.tl div{padding:6px 0 10px 18px;position:relative;font-size:13.5px;display:grid;grid-template-columns:72px 1fr;gap:10px}
+.tl div::before{content:"";position:absolute;left:-7px;top:12px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.tl time{font-family:var(--mono);font-size:12px;color:var(--fg3)}
+
+/* verdict strip */
+.strip{display:flex;height:22px;border-radius:5px;overflow:hidden;gap:2px;background:var(--bg)}
+.strip span{display:block;height:100%}
+.strip .v{background:var(--pos)} .strip .p{background:var(--warn)} .strip .m{background:#9085e9} .strip .nf{background:var(--neg)}
+.strip-n{display:flex;gap:2px;margin-top:-8px;font-family:var(--mono);font-size:11px;color:var(--fg2);font-variant-numeric:tabular-nums}
+.strip-n span{text-align:center;min-width:0;white-space:nowrap}
+.keys{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--fg2)}
+.keys i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.foot{font-size:12.5px;color:var(--fg3);max-width:70ch}
+a{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.row .fil{transition:none}}
+</style>
+
+<div class="wrap">
+
+<header class="sec">
+  <div class="eyebrow">State of practice · July to October 2026 · three independent research reports, 34 load-bearing claims traced to their sources</div>
+  <h1>Writing code got cheap. Reviewing it didn't.</h1>
+  <p class="lede">Where AI use is high, agents write most new code and review hasn't kept up. Nearly everyone settled on the same order: machines first, a person signs off last. Only a few heavily instrumented teams removed the person.</p>
+  <div class="tiles">
+    <div class="tile"><div class="n" style="color:var(--neg)">+441%</div><div class="l">time a PR spends in review</div><div class="s">Faros AI telemetry, high vs low AI adoption</div></div>
+    <div class="tile"><div class="n" style="color:var(--neg)">+243%</div><div class="l">production incidents per merged PR</div><div class="s">same source</div></div>
+    <div class="tile"><div class="n" style="color:var(--neg)">+31%</div><div class="l">PRs merged with no review at all</div><div class="s">same source</div></div>
+    <div class="tile"><div class="n">−70%</div><div class="l">refactoring activity across 623M changes</div><div class="s">GitClear, 2023 to 2026</div></div>
+  </div>
+  <p class="note">Sections 1 to 8 cover the industry, 9 grades the research, and 10 is the playbook.</p>
+</header>
+
+<section class="sec">
+  <header><div class="eyebrow">1 · The whiplash</div><h2>Every review metric moved the wrong way</h2>
+  <p class="take">More AI brought more rework, slower review, more incidents and more unreviewed merges.</p>
+  <p class="note">Faros compared low- and high-adoption periods across 22,000 developers and 4,000 teams. Median percent change.</p></header>
+  <div class="panel">
+    <div class="bars" id="faros"></div>
+    <p class="cap">Incidents per PR and unreviewed merges rose together.</p>
+    <div class="src"><span class="tag vendor">vendor telemetry</span><span class="tag verified">verified</span><span>Faros AI, "The Acceleration Whiplash", Aug 2026</span></div>
+  </div>
+</section>
+
+<section class="sec">
+  <header><div class="eyebrow">2 · The size trap</div><h2>Agent PRs are bigger, wait longer, and merge far less</h2>
+  <p class="take">The PRs that most need review get the least of it.</p>
+  <p class="note">LinearB split 8.1M pull requests from 4,800 teams by authorship. P75 is shown because that's where reviewers break down. The 2006 Cisco/SmartBear study found defect detection drops sharply past roughly 400 lines.</p></header>
+  <div class="panel">
+    <div class="legend"><span><i class="c1"></i>Unassisted</span><span><i class="c2"></i>AI-assisted</span><span><i class="c3"></i>Agentic</span></div>
+    <div class="multi">
+      <div class="m"><h3>PR size, P75 (lines)</h3><div class="bars" id="lb-size"></div></div>
+      <div class="m"><h3>Time to first review, P75 (hours)</h3><div class="bars" id="lb-pickup"></div></div>
+      <div class="m"><h3>Time in review once picked up, P75 (hours)</h3><div class="bars" id="lb-review"></div></div>
+      <div class="m"><h3>Merged within 30 days</h3><div class="bars" id="lb-merge"></div></div>
+    </div>
+    <div class="callout"><i class="c2"></i><span><b>AI-assisted: largest PRs, shortest review.</b> 408 lines at P75, 3.2 h once picked up.</span></div>
+    <p class="cap">The reports call this rubber-stamping. The data doesn't say why.</p>
+    <div class="src"><span class="tag vendor">vendor telemetry</span><span class="tag verified">verified</span><span>LinearB, 2026 Software Engineering Benchmarks</span></div>
+  </div>
+</section>
+
+<section class="sec">
+  <header><div class="eyebrow">3 · The codebase, not the diff</div><h2>Agents add code. They rarely rework it.</h2>
+  <p class="take">Copies and swallowed errors are up. Refactoring is down.</p>
+  <p class="note">GitClear analysed 623 million code changes from 2023 to 2026, using moved code as its proxy for refactoring. Percent change over the period.</p></header>
+  <div class="panel">
+    <div class="bars div" id="gitclear"></div>
+    <p class="cap">Watch the bottom bar: code older than a year gets touched far less.</p>
+    <div class="src"><span class="tag vendor">vendor analysis</span><span class="tag verified">verified</span><span>GitClear, "The AI Code Quality Maintainability Gap", 2026</span></div>
+  </div>
+</section>
+
+<section class="sec">
+  <header><div class="eyebrow">4 · Where the defects hide</div><h2>Big PRs hide more defects, and maintainers are stricter than graders</h2>
+  <p class="take">Spend review effort by PR size, and don't let an automated grader stand in for a maintainer.</p></header>
+  <div class="multi">
+    <div class="panel">
+      <h3>Share of PRs where an AI reviewer found an issue</h3>
+      <div class="bars" id="anth"></div>
+      <p class="cap">Average findings per PR: 0.5 on PRs under 50 lines, 7.5 on PRs over 1,000 lines.</p>
+      <div class="src"><span class="tag vendor">vendor</span><span class="tag verified">verified</span><span>Anthropic, Code Review product data</span></div>
+    </div>
+    <div class="panel">
+      <h3>Maintainers vs automated grader</h3>
+      <div class="tile" style="border:0;padding:0"><div class="n">−24 pts</div><div class="l">merge rate by four real maintainers, relative to what an automated grader judged mergeable, on 296 agent-written PRs across three repos</div></div>
+      <p class="note">Maintainers turn down work a grader would pass. A grader-only gate is not human review.</p>
+      <div class="src"><span class="tag measured">measured</span><span class="tag verified">verified</span><span>METR, 10 Mar 2026</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <header><div class="eyebrow">5 · The pipeline that converged</div><h2>Machines review first, a person signs off last</h2>
+  <p class="take">All three reports describe the same four gates. The human stayed; what they look at changed.</p></header>
+  <figure class="dg">
+    <svg class="dg-wide" viewBox="0 0 1000 258" width="100%" role="img" aria-label="Review pipeline, left to right: gate 1 author self-check, gate 2 deterministic CI with frozen gate files, gate 3 independent AI reviewer, gate 4 adversarial human review, then merge. Gates 3 and 4 bounce work back to the author.">
+      <rect class="pill" x="274" y="8" width="140" height="22" rx="11"/>
+      <text class="t-k t-acc" x="344" y="23" text-anchor="middle">gate files frozen</text>
+      <line class="ln" x1="344" y1="30" x2="344" y2="40"/>
+      <rect class="box" x="16" y="40" width="196" height="150" rx="8"/>
+      <text class="t-k" x="28" y="64">GATE 1</text>
+      <text class="t-b" x="28" y="88">Author self-check</text>
+      <text class="t-s" x="28" y="112">Lint, typecheck and a</text>
+      <text class="t-s" x="28" y="128">diff check, inside the</text>
+      <text class="t-s" x="28" y="144">agent's own loop.</text>
+      <rect class="box" x="246" y="40" width="196" height="150" rx="8"/>
+      <text class="t-k" x="258" y="64">GATE 2</text>
+      <text class="t-b" x="258" y="88">Deterministic CI</text>
+      <text class="t-s" x="258" y="112">Immutable tests, build,</text>
+      <text class="t-s" x="258" y="128">SAST. Tests the agent</text>
+      <text class="t-s" x="258" y="144">can't edit, ideally</text>
+      <text class="t-s" x="258" y="160">held out.</text>
+      <rect class="box" x="476" y="40" width="196" height="150" rx="8"/>
+      <text class="t-k" x="488" y="64">GATE 3</text>
+      <text class="t-b" x="488" y="88">Independent AI reviewer</text>
+      <text class="t-s" x="488" y="112">A different model or</text>
+      <text class="t-s" x="488" y="128">tool than the author.</text>
+      <text class="t-s" x="488" y="144">Whole-repo context</text>
+      <text class="t-s" x="488" y="160">catches what diffs miss.</text>
+      <rect class="box h" x="706" y="40" width="196" height="150" rx="8"/>
+      <text class="t-k t-acc" x="718" y="64">GATE 4 · PERSON</text>
+      <text class="t-b" x="718" y="88">Human, adversarial</text>
+      <text class="t-s" x="718" y="112">Boundaries, schemas, auth,</text>
+      <text class="t-s" x="718" y="128">infra, and whether the</text>
+      <text class="t-s" x="718" y="144">tests can fail at all.</text>
+      <text class="t-s" x="718" y="160">Not syntax.</text>
+      <line class="ln" x1="212" y1="115" x2="238" y2="115"/><polygon class="ah" points="246,115 238,110 238,120"/>
+      <line class="ln" x1="442" y1="115" x2="468" y2="115"/><polygon class="ah" points="476,115 468,110 468,120"/>
+      <line class="ln" x1="672" y1="115" x2="698" y2="115"/><polygon class="ah" points="706,115 698,110 698,120"/>
+      <line class="ln" x1="902" y1="115" x2="930" y2="115"/><polygon class="ah" points="938,115 930,110 930,120"/>
+      <text class="t-s" x="944" y="119">merge</text>
+      <path class="back" d="M804 190 V224 H114 V200"/>
+      <path class="back" d="M574 190 V224"/>
+      <circle class="ah-neg" cx="574" cy="224" r="3"/>
+      <polygon class="ah-neg" points="114,191 109,200 119,200"/>
+      <text class="t-s t-neg" x="344" y="246" text-anchor="middle">bounce back to the author</text>
+    </svg>
+    <svg class="dg-tall" viewBox="0 0 360 632" width="100%" role="img" aria-label="Review pipeline, top to bottom: gate 1 author self-check, gate 2 deterministic CI with frozen gate files, gate 3 independent AI reviewer, gate 4 adversarial human review, then merge. Gates 3 and 4 bounce work back to the author.">
+      <rect class="box" x="16" y="40" width="270" height="108" rx="8"/>
+      <text class="t-k" x="30" y="62">GATE 1</text>
+      <text class="t-b" x="30" y="82">Author self-check</text>
+      <text class="t-s" x="30" y="102">Lint, typecheck and a diff check,</text>
+      <text class="t-s" x="30" y="118">inside the agent's own loop.</text>
+      <line class="ln" x1="60" y1="148" x2="60" y2="171"/><polygon class="ah" points="60,179 55,171 65,171"/>
+      <rect class="pill" x="150" y="152" width="136" height="22" rx="11"/>
+      <text class="t-k t-acc" x="218" y="167" text-anchor="middle">gate files frozen</text>
+      <rect class="box" x="16" y="180" width="270" height="108" rx="8"/>
+      <text class="t-k" x="30" y="202">GATE 2</text>
+      <text class="t-b" x="30" y="222">Deterministic CI</text>
+      <text class="t-s" x="30" y="242">Immutable tests, build, SAST. Tests</text>
+      <text class="t-s" x="30" y="258">the agent can't edit, ideally</text>
+      <text class="t-s" x="30" y="274">held out.</text>
+      <line class="ln" x1="60" y1="288" x2="60" y2="311"/><polygon class="ah" points="60,319 55,311 65,311"/>
+      <rect class="box" x="16" y="320" width="270" height="108" rx="8"/>
+      <text class="t-k" x="30" y="342">GATE 3</text>
+      <text class="t-b" x="30" y="362">Independent AI reviewer</text>
+      <text class="t-s" x="30" y="382">A different model or tool than the</text>
+      <text class="t-s" x="30" y="398">author. Whole-repo context catches</text>
+      <text class="t-s" x="30" y="414">what diffs miss.</text>
+      <line class="ln" x1="60" y1="428" x2="60" y2="451"/><polygon class="ah" points="60,459 55,451 65,451"/>
+      <rect class="box h" x="16" y="460" width="270" height="108" rx="8"/>
+      <text class="t-k t-acc" x="30" y="482">GATE 4 · PERSON</text>
+      <text class="t-b" x="30" y="502">Human, adversarial</text>
+      <text class="t-s" x="30" y="522">Boundaries, schemas, auth, infra,</text>
+      <text class="t-s" x="30" y="538">and whether the tests can fail at</text>
+      <text class="t-s" x="30" y="554">all. Not syntax.</text>
+      <line class="ln" x1="60" y1="568" x2="60" y2="591"/><polygon class="ah" points="60,599 55,591 65,591"/>
+      <text class="t-s" x="60" y="618" text-anchor="middle">merge</text>
+      <path class="back" d="M286 514 H326 V94 H295"/>
+      <path class="back" d="M286 374 H326"/>
+      <circle class="ah-neg" cx="326" cy="374" r="3"/>
+      <polygon class="ah-neg" points="287,94 295,89 295,99"/>
+      <text class="t-s t-neg" x="344" y="300" text-anchor="middle" transform="rotate(-90 344 300)">bounce back to the author</text>
+    </svg>
+    <figcaption class="cap">Only gate 4 is a person, and gates 3 and 4 send work back.</figcaption>
+  </figure>
+  <div class="panel">
+    <h3>One three-week head-to-head of AI reviewers</h3>
+    <div class="tw"><table>
+      <tr><th>Reviewer</th><th>Findings</th><th>Signal</th><th>Trade-off</th></tr>
+      <tr><td>CodeRabbit</td><td class="num">281</td><td>68.3% came with a one-click fix</td><td>Diff-only, so it misses cross-file effects</td></tr>
+      <tr><td>Greptile</td><td class="num">120</td><td>No false positives on logic</td><td>Noisy on style; someone has to triage</td></tr>
+      <tr><td>Sentry Seer</td><td class="num">6 of 6 critical</td><td>3.7 min mean latency</td><td>15% false positives in its "high" tier</td></tr>
+      <tr><td>Cursor BugBot</td><td class="num">n/a</td><td colspan="2">Fourth participant. Report A misnamed it as Qodo.</td></tr>
+    </table></div>
+    <div class="src"><span class="tag firsthand">first-hand</span><span class="tag verified">verified</span><span>Independent trial, 146 PRs, 679 findings, dev.to, 2026</span></div>
+  </div>
+</section>
+
+<section class="sec">
+  <header><div class="eyebrow">6 · Three postures</div><h2>Incumbents, the agent-first fringe, and open source</h2>
+  <p class="take">Incumbents and open source kept the human. Two companies dropped it.</p></header>
+  <div class="seg">
+    <div class="panel"><h3>Established companies</h3><ul>
+      <li>Human sign-off stays; AI review sits in front of it.</li>
+      <li>The stated worry is governance: 84% of leaders say the hardest part is what happens to AI code after it's written.</li>
+      <li>After a March 2026 incident wave (about 120,000 lost orders), Amazon required senior sign-off on AI-assisted changes from junior and mid-level engineers.</li>
+    </ul><div class="src"><span class="tag measured">measured</span><span>GitLab/Harris Poll, 1,528 respondents</span><span class="tag firsthand">first-hand</span><span>press reports</span></div></div>
+    <div class="panel"><h3>Agent-first fringe</h3>
+      <blockquote>"Code must not be reviewed by humans."<small>StrongDM engineering charter, confirmed via Simon Willison. The claim that OpenAI's Harness team made human review optional couldn't be confirmed from the primary source.</small></blockquote>
+      <ul><li>Deterministic gates, held-out tests and a second model replace human reading.</li><li>Two named companies. Not a trend yet.</li></ul></div>
+    <div class="panel"><h3>Open source</h3><ul>
+      <li>AI may assist. A human is the author, signs the CLA, and must be able to explain the code.</li>
+      <li>Kubernetes closes PRs when an agent answers review comments. CPython forbids altering or bypassing tests to get a pass.</li>
+      <li>Across 1,000 repos, 118 had an AI policy and 74% of those require a human in the loop. In one developer's sample of 30 projects, 19 had a rule and 14 of those appeared in 2026.</li>
+    </ul><div class="src"><span class="tag firsthand">first-hand</span><span>Kubernetes blog Jun 2026, CPython devguide</span><span class="tag measured">measured</span><span>Hora et al., May 2026</span></div></div>
+  </div>
+</section>
+
+<section class="sec">
+  <header><div class="eyebrow">7 · Trust</div><h2>Nearly everyone uses it. Almost no one trusts it.</h2>
+  <p class="take">Distrust is nearly universal, yet fewer than half check every time.</p></header>
+  <div class="panel">
+    <div class="bars" id="trust"></div>
+    <p class="cap">Compare the 96% who don't fully trust the output with the 48% who always verify it.</p>
+    <div class="src"><span class="tag measured">survey</span><span class="tag verified">verified</span><span>Sonar State of Code, Jan 2026, 1,100+ developers · Stack Overflow Developer Survey 2026</span></div>
+  </div>
+</section>
+
+<section class="sec">
+  <header><div class="eyebrow">8 · 2026 in order</div><h2>What actually happened</h2>
+  <p class="take">Project rules tightened all year while agent benchmarks lost credibility.</p></header>
+  <div class="tl">
+    <div><time>Jan</time><span>Scientific Python publishes four principles: be transparent, take responsibility, gain understanding, honor copyright. GitClear publishes its maintainability gap data.</span></div>
+    <div><time>Feb–Mar</time><span>OpenAI stops reporting SWE-bench Verified after auditing the hardest tasks and finding 59.4% had material flaws, mostly tests that rejected valid fixes. METR publishes the maintainer-vs-grader study.</span></div>
+    <div><time>Mar</time><span>An Amazon incident wave, attributed internally to generative AI changes, leads to the senior sign-off rule.</span></div>
+    <div><time>May</time><span>Hora et al. map AI contribution policies across 1,000 repositories.</span></div>
+    <div><time>Jun</time><span>Kubernetes bans AI co-authors, adds a CLA check for co-authors, and closes PRs where an agent answers reviewers.</span></div>
+    <div><time>Jul</time><span>The CPython devguide adds an AI tools page banning test tampering. In Veracode's 2026 report the best model passes 68% of security tasks; the four-year average across 100+ models is 56%.</span></div>
+    <div><time>Aug</time><span>Faros publishes the Acceleration Whiplash telemetry.</span></div>
+    <div><time>Oct</time><span>GitHub releases ReviewBench, an open benchmark of 219 real PRs for AI code reviewers.</span></div>
+  </div>
+</section>
+
+<section class="sec">
+  <header><div class="eyebrow">9 · How much to believe</div><h2>The research itself, checked</h2>
+  <p class="take">Nothing was invented, but the report with the cleanest story was the sloppiest with sources.</p>
+  <p class="note">Thirty-four load-bearing claims were traced to their cited sources. Report A leaned most on secondary content farms and nudged numbers up.</p></header>
+  <div class="panel">
+    <div class="strip"><span class="v" style="width:50%"></span><span class="p" style="width:44.1%"></span><span class="m" style="width:2.9%"></span><span class="nf" style="width:2.9%"></span></div>
+    <div class="strip-n" aria-hidden="true"><span style="width:50%">17</span><span style="width:44.1%">15</span><span style="width:2.9%">1</span><span style="width:2.9%">1</span></div>
+    <div class="keys"><span><i style="background:var(--pos)"></i>17 verified</span><span><i style="background:var(--warn)"></i>15 partial (source exists, figure or framing off)</span><span><i style="background:#9085e9"></i>1 misdated</span><span><i style="background:var(--neg)"></i>1 not found</span><span>0 fabricated</span></div>
+    <div class="tw"><table>
+      <tr><th>Pattern</th><th>Example</th><th>Use it?</th></tr>
+      <tr><td>Reversed meaning</td><td>The SWE-bench flaws were tests that rejected valid code. A report described them as passing wrong code.</td><td>Only with the correct reading</td></tr>
+      <tr><td>Old date passed off as 2026</td><td>The USENIX package-hallucination paper is from 2025 (19.7%). So is the FDA PCCP guidance.</td><td>Cite the real year</td></tr>
+      <tr><td>Upgraded wording</td><td>"Governance" became "provenance". A 30-repo blog sample became an "independent survey of major repos".</td><td>Use the source's own words</td></tr>
+      <tr><td>Wrong attribution</td><td>A Meta paper by Ugare and Chandra credited to "Mohammad et al."; Cursor BugBot listed as Qodo</td><td>Fix before citing</td></tr>
+      <tr><td>Unconfirmed</td><td>OpenAI Harness "humans not required"; Google pausing bug-bounty intake</td><td>No</td></tr>
+    </table></div>
+  </div>
+  <p class="foot">Sources: the three research reports and the primary pages they cite.</p>
+</section>
+
+<section class="sec">
+  <header><div class="eyebrow">10 · The playbook</div><h2>How to review agent-written code and codebases</h2>
+  <p class="take">Sort each change by risk, put it through eight steps, and audit the codebase when drift shows up.</p>
+  <p class="note">Built from what at least two of the three reports agree on and the verified numbers support.</p></header>
+
+  <figure class="dg dg-narrow">
+    <svg viewBox="0 0 400 256" width="100%" role="img" aria-label="Two loops: the per-change loop feeds metrics into the per-codebase audit, and the audit's task list feeds back as new changes.">
+      <rect class="box" x="60" y="16" width="280" height="64" rx="8"/>
+      <text class="t-b" x="200" y="42" text-anchor="middle">Per-change loop</text>
+      <text class="t-s" x="200" y="62" text-anchor="middle">classify, eight steps, human merge</text>
+      <rect class="box" x="60" y="180" width="280" height="64" rx="8"/>
+      <text class="t-b" x="200" y="206" text-anchor="middle">Per-codebase audit</text>
+      <text class="t-s" x="200" y="226" text-anchor="middle">on triggers, or at least quarterly</text>
+      <line class="ln" x1="150" y1="80" x2="150" y2="171"/><polygon class="ah" points="150,179 145,171 155,171"/>
+      <text class="t-s" x="140" y="124" text-anchor="end">metrics feed</text>
+      <text class="t-s" x="140" y="140" text-anchor="end">the triggers</text>
+      <line class="ln" x1="250" y1="180" x2="250" y2="89"/><polygon class="ah" points="250,81 245,89 255,89"/>
+      <text class="t-s" x="260" y="124">task list</text>
+      <text class="t-s" x="260" y="140">becomes changes</text>
+    </svg>
+    <figcaption class="cap">The audit catches drift that PR review can't see.</figcaption>
+  </figure>
+
+  <div class="panel">
+    <h3>First, classify the change. Everything after keys off this.</h3>
+    <figure class="dg dg-narrow">
+      <svg viewBox="0 0 400 284" width="100%" role="img" aria-label="Risk decision: touches CI, tests, lint rules or agent instructions means Gate class; otherwise touches auth, money, data, deploy or a public API means High; otherwise a feature or fix inside existing boundaries means Normal; otherwise a rename, format, generated code or dependency bump means Mechanical.">
+        <rect class="box" x="8" y="12" width="258" height="46" rx="8"/>
+        <text x="20" y="32">Touches CI, tests, lint rules</text>
+        <text x="20" y="48">or agent instructions?</text>
+        <line class="ln" x1="266" y1="35" x2="290" y2="35"/><polygon class="ah" points="298,35 290,30 290,40"/>
+        <text class="t-k" x="280" y="27" text-anchor="middle">yes</text>
+        <rect class="rk-gate" x="298" y="20" width="94" height="30" rx="15"/>
+        <text class="t-b" x="345" y="40" text-anchor="middle">Gate</text>
+        <line class="ln" x1="137" y1="58" x2="137" y2="76"/><polygon class="ah" points="137,84 132,76 142,76"/>
+        <text class="t-k" x="146" y="75">no</text>
+
+        <rect class="box" x="8" y="84" width="258" height="46" rx="8"/>
+        <text x="20" y="104">Touches auth, money, data,</text>
+        <text x="20" y="120">deploy or a public API?</text>
+        <line class="ln" x1="266" y1="107" x2="290" y2="107"/><polygon class="ah" points="298,107 290,102 290,112"/>
+        <text class="t-k" x="280" y="99" text-anchor="middle">yes</text>
+        <rect class="rk-high" x="298" y="92" width="94" height="30" rx="15"/>
+        <text class="t-b" x="345" y="112" text-anchor="middle">High</text>
+        <line class="ln" x1="137" y1="130" x2="137" y2="148"/><polygon class="ah" points="137,156 132,148 142,148"/>
+        <text class="t-k" x="146" y="147">no</text>
+
+        <rect class="box" x="8" y="156" width="258" height="46" rx="8"/>
+        <text x="20" y="176">A feature or fix inside</text>
+        <text x="20" y="192">existing boundaries?</text>
+        <line class="ln" x1="266" y1="179" x2="290" y2="179"/><polygon class="ah" points="298,179 290,174 290,184"/>
+        <text class="t-k" x="280" y="171" text-anchor="middle">yes</text>
+        <rect class="rk-norm" x="298" y="164" width="94" height="30" rx="15"/>
+        <text class="t-b" x="345" y="184" text-anchor="middle">Normal</text>
+        <line class="ln" x1="137" y1="202" x2="137" y2="220"/><polygon class="ah" points="137,228 132,220 142,220"/>
+        <text class="t-k" x="146" y="219">no</text>
+
+        <rect class="box" x="8" y="228" width="258" height="46" rx="8"/>
+        <text x="20" y="248">A rename, format, generated code</text>
+        <text x="20" y="264">or dependency bump?</text>
+        <line class="ln" x1="266" y1="251" x2="290" y2="251"/><polygon class="ah" points="298,251 290,246 290,256"/>
+        <text class="t-k" x="280" y="243" text-anchor="middle">yes</text>
+        <rect class="rk-mech" x="298" y="236" width="94" height="30" rx="15"/>
+        <text class="t-b" x="345" y="256" text-anchor="middle">Mechanical</text>
+      </svg>
+      <figcaption class="cap">Ask in this order and stop at the first yes.</figcaption>
+    </figure>
+    <div class="tw"><table style="min-width:560px">
+      <tr><th>Risk class</th><th>What falls in it</th><th>Review depth</th></tr>
+      <tr><td><b>Gate</b></td><td>CI config, test harness, lint rules, coverage thresholds, agent instruction files. Anything that changes how future work is judged.</td><td>Highest. A human reads every line, every time. Flagged automatically by path.</td></tr>
+      <tr><td><b>High</b></td><td>Auth, permissions, money, persistence and migrations, deploy and infrastructure, public API contracts.</td><td>A human reads every line, plus runtime proof.</td></tr>
+      <tr><td><b>Normal</b></td><td>Features and fixes inside existing boundaries.</td><td>Human reads boundaries and tests, samples the rest, trusts green gates for the body.</td></tr>
+      <tr><td><b>Mechanical</b></td><td>Renames, formatting, generated code, dependency bumps with passing suites.</td><td>Gates and an AI reviewer. A human only confirms scope.</td></tr>
+    </table></div>
+  </div>
+
+  <div class="panel">
+    <h3>Eight steps per change</h3>
+    <div class="legend"><span><i class="key-hu"></i>a person owns this step</span><span><i class="key-ag"></i>agent or machine</span></div>
+    <ol class="flow">
+      <li class="ret" aria-hidden="true"><span>return oversized diffs</span></li>
+      <li class="hu"><div class="nd">1</div><div class="bd"><span class="k">before code · person</span><b>A person owns the spec</b><span>A person writes the acceptance criteria. Size the change so one named check can verify it. Split before building, never at review.</span></div></li>
+      <li><div class="nd">2</div><div class="bd"><span class="k">snapshot</span><b>Freeze the gates</b><span>Before the first edit, record the gate result and hash every gate definition. Diff against that at the end.</span></div></li>
+      <li><div class="nd">3</div><div class="bd"><span class="k">build</span><b>Collect evidence while building</b><span>New tests fail before the fix. Revert each fix to confirm a test catches it. Lint and tests in the agent's loop don't count as review.</span></div></li>
+      <li><div class="nd">4</div><div class="bd"><span class="k">CI</span><b>Gates the author can't edit</b><span>Tests, build, static security analysis, duplication threshold, and held-out acceptance tests if you can afford them. Touching a gate file moves the PR to the Gate class.</span></div></li>
+      <li><div class="nd">5</div><div class="bd"><span class="k">AI review</span><b>An independent reviewer that informs and never approves</b><span>A different model or tool than the author. It sees diff, spec, plan and repo, never the author's explanation. Drop any finding not tied to a line.</span></div></li>
+      <li><div class="nd">6</div><div class="bd"><span class="k">runtime</span><b>Someone other than the builder drives the real thing</b><span>Browser, CLI or API, against the acceptance criteria, with a negative control: break the behaviour and confirm the check fails. Required for anything user-facing.</span></div></li>
+      <li class="hu"><div class="nd">7</div><div class="bd"><span class="k">review · person</span><b>Adversarial review, depth set by risk class</b><span>Read the tests first and ask whether they can fail. Look for duplicated helpers and scope creep. Re-run one claimed verification yourself. Send oversized diffs back to be split.</span></div></li>
+      <li class="hu"><div class="nd">8</div><div class="bd"><span class="k">merge · person</span><b>A person merges and records provenance</b><span>The commit or PR records agent, model, plan reference, validation commands and reviewer. AI is disclosed, never credited as author. A named person is accountable.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="panel">
+    <h3>What the AI reviewer and the human each look for</h3>
+    <div class="tw"><table style="min-width:560px">
+      <tr><th>Defect class</th><th>Why agents produce it</th><th>Who catches it</th></tr>
+      <tr><td>Tests that can't fail</td><td>Optimising for green: empty catches, self-comparisons, the subject mocked away, selectors that match nothing</td><td>AI reviewer flags it; a human confirms by reading the assertion</td></tr>
+      <tr><td>Weakened or deleted gates</td><td>Fastest route to green</td><td>Snapshot diff in CI, automatically</td></tr>
+      <tr><td>A second copy of an existing helper</td><td>No memory of the whole repo, and writing is cheaper than searching</td><td>Whole-repo AI reviewer; duplication gate over time</td></tr>
+      <tr><td>Scope beyond the spec</td><td>Agents keep going</td><td>Human, by diffing the changed files against the plan</td></tr>
+      <tr><td>Verification claimed but never run</td><td>Describing a run is cheaper than doing it</td><td>Human re-runs one command; only CI exit codes count</td></tr>
+      <tr><td>Cross-file regression</td><td>Context limited to the diff</td><td>Whole-repo AI reviewer; runtime QA</td></tr>
+      <tr><td>Byte-level damage: NUL, BOM, mixed line endings</td><td>Tooling round-trips</td><td>A CI scan. No human will spot it.</td></tr>
+    </table></div>
+  </div>
+
+  <div class="panel">
+    <h3>The codebase audit runs on triggers</h3>
+    <p class="note">Run it when a signal crosses its threshold, or quarterly without telemetry. The output is a task list.</p>
+    <div class="multi">
+      <div class="m"><h3>Triggers</h3><ul class="list">
+        <li>Duplication percentage rising for two measurements in a row</li>
+        <li>Code rewritten within two weeks climbing</li>
+        <li>Incidents or reverts per merged PR climbing</li>
+        <li>Any unreviewed merge in the Gate or High classes</li>
+        <li>Gate warning counts growing, or a gate quietly switched to advisory</li>
+      </ul></div>
+      <div class="m"><h3>What the audit checks</h3><ul class="list">
+        <li>Duplicate and near-duplicate helpers, by name and by shape</li>
+        <li>Error masking: swallowed exceptions, defaulted failures, broad catches</li>
+        <li>Test strength on a sample: mutate the code, count tests that still pass</li>
+        <li>Architecture invariants: dependency direction and the module boundaries the repo already had</li>
+        <li>Gate rot: anything disabled, narrowed or made advisory since the last audit</li>
+        <li>Dead code and orphaned files from abandoned agent attempts</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Measure five things</h3>
+    <div class="tw"><table style="min-width:520px">
+      <tr><th>Metric</th><th>Why</th></tr>
+      <tr><td>PR size at the 75th percentile, by author type</td><td>Size predicts findings and review cost, and agent PRs run large.</td></tr>
+      <tr><td>Time to first review and time in review</td><td>The first numbers to move when reviewers start avoiding agent PRs.</td></tr>
+      <tr><td>Unreviewed merge rate, by risk class</td><td>Must be zero for Gate and High.</td></tr>
+      <tr><td>Revert and incident rate per merged PR</td><td>The escape rate, and the only outcome measure here.</td></tr>
+      <tr><td>Findings per PR from the AI reviewer, by size bucket</td><td>Shows where to spend human attention.</td></tr>
+    </table></div>
+    <p class="note">Watch for the largest PRs getting the shortest reviews. In the benchmark data that pattern comes before the incident spike.</p>
+  </div>
+
+  <div class="multi">
+    <div class="panel"><h3>Rules that hold at any team size</h3><ul class="list" style="gap:5px">
+      <li>No agent edits, narrows or skips a test to get green. A gamed gate is a failed task.</li>
+      <li>Self-review by the authoring agent isn't review.</li>
+      <li>The AI reviewer informs. A human owns the merge.</li>
+      <li>Verify by re-running the command and checking its exit code.</li>
+      <li>Disclose AI involvement. A named person is accountable for every merge.</li>
+      <li>Split big changes before building.</li>
+    </ul></div>
+    <div class="panel"><h3>Skip until the evidence improves</h3><ul class="list" style="gap:5px">
+      <li>A hard line-count cap. The 400-line figure comes from a 2006 study. Use the risk class and "one named check" instead.</li>
+      <li>Several AI reviewers voting. Their blind spots overlap; one independent reviewer plus a human has the evidence.</li>
+      <li>Dropping the human. Two companies have, both with held-out tests and heavy instrumentation.</li>
+      <li>Governance dashboards and policy engines, unless you sell to regulated buyers.</li>
+      <li>A fixed audit calendar as the only trigger.</li>
+    </ul></div>
+  </div>
+  <p class="foot">Figures behind this section: Faros, LinearB, GitClear and Anthropic product telemetry (vendor, confirmed against their pages); METR's maintainer study; the Kubernetes, CPython and Scientific Python policies; the Hora et al. policy survey; GitHub's ReviewBench.</p>
+</section>
+
+</div>
+
+<script>
+(function(){
+  const fmt = {
+    pct: v => (v>0?'+':'')+v+'%', pctAbs: v => v+'%', int: v => String(v), h: v => v+' h'
+  };
+  function bars(id, rows, opts){
+    const el = document.getElementById(id); if(!el) return;
+    const max = opts.max || Math.max(...rows.map(r=>Math.abs(r[1])));
+    el.innerHTML = rows.map(r=>{
+      const w = (Math.abs(r[1])/max*100).toFixed(1);
+      const cls = r[2] ? ' '+r[2] : '';
+      return `<div class="row" title="${r[0]}: ${opts.f(r[1])}"><div class="lab">${r[0]}</div><div class="trk"><div class="fil${cls}" style="width:${w}%"></div></div><div class="val">${opts.f(r[1])}</div></div>`;
+    }).join('');
+  }
+  function dbars(id, rows, max){
+    const el = document.getElementById(id); if(!el) return;
+    el.innerHTML = rows.map(r=>{
+      const w = (Math.abs(r[1])/max*50).toFixed(1);
+      const cls = r[1] >= 0 ? 'pos' : 'negv';
+      return `<div class="row" title="${r[0]}: ${fmt.pct(r[1])}"><div class="lab">${r[0]}</div><div class="trk"><div class="fil ${cls}" style="width:${w}%"></div></div><div class="val">${fmt.pct(r[1])}</div></div>`;
+    }).join('');
+  }
+  bars('faros', [
+    ['Code rewritten within two weeks', 861],
+    ['Time in review', 441.5],
+    ['Incidents per merged PR', 242.7],
+    ['Time to first review', 156.6],
+    ['Bugs per developer', 54],
+    ['PRs merged with no review', 31.3]
+  ], {f:fmt.pct});
+  const LB = (k, rows, f, max) => bars(k, rows.map((r,i)=>[r[0], r[1], 'c'+(i+1)]), {f, max});
+  LB('lb-size',   [['Unassisted',157],['AI-assisted',408],['Agentic',293]], fmt.int, 408);
+  LB('lb-pickup', [['Unassisted',3.4],['AI-assisted',8.3],['Agentic',17.6]], fmt.h, 17.6);
+  LB('lb-review', [['Unassisted',4.2],['AI-assisted',3.2],['Agentic',6.4]], fmt.h, 6.4);
+  bars('lb-merge', [['Unassisted',84.4,'c1'],['Agentic',32.7,'c3']], {f:fmt.pctAbs, max:100});
+  dbars('gitclear', [
+    ['Duplicated code', 81],
+    ['Error masking (swallowed failures)', 47],
+    ['Refactoring (moved code)', -70],
+    ['Updates to code older than a year', -74]
+  ], 81);
+  bars('anth', [['PRs under 50 lines',31],['PRs over 1,000 lines',84]], {f:fmt.pctAbs, max:100});
+  bars('trust', [
+    ['Use AI tools for coding (Stack Overflow)', 66],
+    ['Share of their code that is AI-generated (Sonar)', 42],
+    ['Do not fully trust AI output (Sonar)', 96],
+    ['Always verify AI code before using it (Sonar)', 48],
+    ['Trust AI for most non-critical tasks (Stack Overflow)', 16]
+  ], {f:fmt.pctAbs, max:100});
+})();
+</script>
