@@ -57,7 +57,8 @@ chain). Each stage ends with a **machine-parseable handoff block** (`SPEC:/TIER:
 
 Origins: `agent-human-repo` → `solidify-repo`; `agent-driven-architecture-design` →
 `architecture-critic`; `agent-driven-feature-spec` → `feature-spec`;
-`long-running-agents` → `autonomous-build-loop`. `implementation-plan`,
+`long-running-agents` → `autonomous-build-loop`; `accelerated-human-cognition` →
+`guided-learning`. `implementation-plan`,
 `build-and-verify`, `code-review`, `runtime-qa` and `create-project-plugin` came from
 the 2026-09 field retro across Conduit and Vega plus a hand-built project plugin.
 
