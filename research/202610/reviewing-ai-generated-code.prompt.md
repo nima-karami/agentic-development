@@ -1,11 +1,11 @@
-# Research brief: How the industry reviews AI-generated code and codebases (H2 2026)
+# Research prompt: how the industry reviews AI-generated code and codebases (H2 2026)
 
-## Why I am asking
+## Context
 
-I run an agentic-development practice: most code in my projects is written by coding
-agents, and I maintain my own review and QA skills for them. I want to recalibrate those
-against what the wider industry actually does today, not against what vendors say.
-Treat this as a state-of-practice survey with an evidence grade on every claim.
+The findings will recalibrate an existing set of review and QA skills for
+codebases where most code is written by coding agents, against what the wider
+industry actually does today, not against what vendors say. Treat this as a
+state-of-practice survey with an evidence grade on every claim.
 
 ## Scope
 
