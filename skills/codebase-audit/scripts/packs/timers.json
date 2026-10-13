@@ -1,0 +1,158 @@
+{
+  "name": "timers",
+  "version": "1",
+  "description": "Recurring-work and polling sites: setInterval, timer and scheduler constructors, ticker loops and unbounded loops. Input for the timers x client-count arithmetic of the performance audit; the interval and the loop body still have to be read.",
+  "limitations": [
+    "setTimeout inside loops and recursive setTimeout are not detectable by a line scan.",
+    "time.sleep inside a loop is not detectable by a line scan; unbounded loops are flagged as heuristic polling candidates only.",
+    "Heuristic patterns flag candidates: whether the loop sleeps, and how often, needs a read."
+  ],
+  "patterns": [
+    {
+      "id": "timer-set-interval",
+      "category": "timer",
+      "regex": "\\bsetInterval\\s*\\(",
+      "description": "JS/TS setInterval: recurring callback.",
+      "rubric": "P7",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "timer-constructor",
+      "category": "timer",
+      "regex": "\\bTimer\\s*\\(",
+      "description": "Timer constructor (Python threading.Timer, Java/Kotlin/C# Timer).",
+      "rubric": "P7",
+      "extensions": [
+        ".py",
+        ".java",
+        ".kt",
+        ".cs"
+      ],
+      "code_only": true,
+      "heuristic": true
+    },
+    {
+      "id": "timer-scheduled-annotation",
+      "category": "timer",
+      "regex": "@Scheduled\\b|\\bscheduleAtFixedRate\\b|\\bscheduleWithFixedDelay\\b",
+      "description": "JVM scheduled task.",
+      "rubric": "P7",
+      "extensions": [
+        ".java",
+        ".kt",
+        ".scala"
+      ]
+    },
+    {
+      "id": "timer-py-schedule",
+      "category": "timer",
+      "regex": "\\bschedule\\.every\\s*\\(|\\bAsyncIOScheduler\\s*\\(|\\bBackgroundScheduler\\s*\\(",
+      "description": "Python schedule / APScheduler recurring job.",
+      "rubric": "P7",
+      "extensions": [
+        ".py"
+      ],
+      "heuristic": true
+    },
+    {
+      "id": "timer-node-cron",
+      "category": "timer",
+      "regex": "\\bcron\\.schedule\\s*\\(|\\bnew\\s+CronJob\\s*\\(",
+      "description": "Node cron job.",
+      "rubric": "P7",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "heuristic": true
+    },
+    {
+      "id": "timer-go-ticker",
+      "category": "timer",
+      "regex": "\\btime\\.(?:NewTicker|Tick)\\s*\\(",
+      "description": "Go ticker: recurring wake-up.",
+      "rubric": "P7",
+      "extensions": [
+        ".go"
+      ]
+    },
+    {
+      "id": "timer-while-true",
+      "category": "timer",
+      "regex": "^\\s*while\\s+(?:True|1)\\s*:",
+      "description": "Python unbounded loop: polling candidate if the body sleeps.",
+      "rubric": "P7",
+      "extensions": [
+        ".py"
+      ],
+      "code_only": true,
+      "heuristic": true
+    },
+    {
+      "id": "timer-while-true-c-like",
+      "category": "timer",
+      "regex": "^\\s*(?:while\\s*\\(\\s*(?:true|1)\\s*\\)|for\\s*\\(\\s*;\\s*;\\s*\\))",
+      "description": "Unbounded loop in a C-family language: polling candidate if the body waits.",
+      "rubric": "P7",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts",
+        ".java",
+        ".kt",
+        ".cs",
+        ".c",
+        ".cc",
+        ".cpp",
+        ".h"
+      ],
+      "code_only": true,
+      "heuristic": true
+    },
+    {
+      "id": "timer-go-for-loop",
+      "category": "timer",
+      "regex": "^\\s*for\\s*\\{\\s*$",
+      "description": "Go unbounded 'for {' loop: polling candidate if the body waits.",
+      "rubric": "P7",
+      "extensions": [
+        ".go"
+      ],
+      "code_only": true,
+      "heuristic": true
+    },
+    {
+      "id": "timer-rust-loop",
+      "category": "timer",
+      "regex": "^\\s*loop\\s*\\{",
+      "description": "Rust unbounded 'loop {': polling candidate if the body waits.",
+      "rubric": "P7",
+      "extensions": [
+        ".rs"
+      ],
+      "code_only": true,
+      "heuristic": true
+    }
+  ]
+}

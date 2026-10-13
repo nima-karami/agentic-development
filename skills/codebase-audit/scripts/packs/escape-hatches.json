@@ -1,0 +1,170 @@
+{
+  "name": "escape-hatches",
+  "version": "1",
+  "description": "Places where a language's type or safety system is bypassed: TypeScript any / casts / non-null assertions, Python cast and type: ignore, Rust unwrap/expect, Go interface{}. Use with --focus-file to count escape hatches at ingestion points.",
+  "limitations": [
+    "Patterns marked code_only match against the line with string literals and trailing comments blanked; multi-line strings and template literals spanning lines are not tracked.",
+    "ts-as-cast only flags 'as' followed by a type-like token (PascalCase, primitive, object/array literal); a lower-case alias type is missed and JSX prose beginning with a capital word can be a false positive.",
+    "Non-null assertion patterns are heuristic and can match prose-like JSX text such as 'Done!.'"
+  ],
+  "patterns": [
+    {
+      "id": "ts-any-annotation",
+      "category": "escape-hatch",
+      "regex": ":\\s*any\\b(?!\\w)",
+      "description": "TypeScript ': any' annotation.",
+      "rubric": "G4",
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "ts-as-any",
+      "category": "escape-hatch",
+      "regex": "\\bas\\s+any\\b",
+      "description": "TypeScript 'as any' cast.",
+      "rubric": "G4",
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "ts-any-generic",
+      "category": "escape-hatch",
+      "regex": "<any\\s*[>,]|,\\s*any\\s*>|\\bany\\[\\]",
+      "description": "TypeScript any as a type argument, '<any>' assertion or any[].",
+      "rubric": "G4",
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "ts-as-unknown-as",
+      "category": "escape-hatch",
+      "regex": "\\bas\\s+unknown\\s+as\\b",
+      "description": "Double cast 'as unknown as T' that defeats the compiler.",
+      "rubric": "G4",
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "ts-as-cast",
+      "category": "escape-hatch",
+      "regex": "(?<!unknown )\\bas\\s+(?:[A-Z_$][\\w$.]*|\\{|\\[|\\((?!\\))|(?:string|number|boolean|object|bigint|symbol|null|undefined|never|void|readonly|typeof|keyof)\\b)",
+      "description": "TypeScript type assertion 'as T'; excludes 'as const', 'as any', 'as unknown', import/export aliases.",
+      "rubric": "G4",
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true,
+      "heuristic": true,
+      "exclude_regex": "^\\s*(?:import|export)\\b|^\\s*\\}\\s*from\\b|^\\s*[\\w$]+\\s+as\\s+[\\w$]+\\s*,?\\s*$"
+    },
+    {
+      "id": "ts-non-null-member",
+      "category": "escape-hatch",
+      "regex": "[\\w)\\]]!(?=\\.|\\[|\\?\\.)",
+      "description": "TypeScript non-null assertion before a member access ('x!.y', 'x![0]').",
+      "rubric": "G4",
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true,
+      "heuristic": true
+    },
+    {
+      "id": "ts-non-null-other",
+      "category": "escape-hatch",
+      "regex": "[\\w)\\]]!(?=[),;])(?!=)",
+      "description": "TypeScript non-null assertion at the end of an expression ('f(x!)', 'return x!;').",
+      "rubric": "G4",
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true,
+      "heuristic": true
+    },
+    {
+      "id": "py-cast",
+      "category": "escape-hatch",
+      "regex": "(?<![\\w.])cast\\(|\\btyping\\.cast\\(",
+      "description": "Python typing.cast(...) call.",
+      "rubric": "G4",
+      "extensions": [
+        ".py",
+        ".pyi"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "py-type-ignore",
+      "category": "escape-hatch",
+      "regex": "#\\s*type:\\s*ignore\\b",
+      "description": "Python '# type: ignore' used as a typing escape hatch.",
+      "rubric": "G4",
+      "extensions": [
+        ".py",
+        ".pyi"
+      ]
+    },
+    {
+      "id": "rust-unwrap",
+      "category": "escape-hatch",
+      "regex": "\\.unwrap\\(\\)",
+      "description": "Rust .unwrap(): panics on None/Err.",
+      "rubric": "G4",
+      "extensions": [
+        ".rs"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "rust-expect",
+      "category": "escape-hatch",
+      "regex": "\\.expect\\(",
+      "description": "Rust .expect(msg): panics on None/Err.",
+      "rubric": "G4",
+      "extensions": [
+        ".rs"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "go-empty-interface",
+      "category": "escape-hatch",
+      "regex": "\\binterface\\s*\\{\\s*\\}",
+      "description": "Go empty interface 'interface{}' (untyped value).",
+      "rubric": "G4",
+      "extensions": [
+        ".go"
+      ],
+      "code_only": true
+    }
+  ]
+}

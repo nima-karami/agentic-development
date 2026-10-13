@@ -1,0 +1,111 @@
+{
+  "name": "suppressions",
+  "version": "1",
+  "description": "Comments and attributes that silence a linter, type checker, analyzer or coverage gate. Counts the mechanism, not whether it carries a reason.",
+  "limitations": [
+    "Matches the marker text anywhere on a line, including inside strings and documentation; whether a suppression has a justification is not checked."
+  ],
+  "patterns": [
+    {
+      "id": "suppress-biome-ignore",
+      "category": "suppression",
+      "regex": "\\bbiome-ignore\\b",
+      "description": "Biome lint/format suppression comment.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-ts-ignore",
+      "category": "suppression",
+      "regex": "@ts-ignore\\b",
+      "description": "TypeScript @ts-ignore: silences the next line with no expectation of an error.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-ts-expect-error",
+      "category": "suppression",
+      "regex": "@ts-expect-error\\b",
+      "description": "TypeScript @ts-expect-error: silences the next line, fails when it stops erroring.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-ts-nocheck",
+      "category": "suppression",
+      "regex": "@ts-nocheck\\b",
+      "description": "TypeScript @ts-nocheck: disables checking for a whole file.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-eslint-disable",
+      "category": "suppression",
+      "regex": "\\beslint-disable(?:-next-line|-line)?\\b",
+      "description": "ESLint disable directive (block, line or next-line).",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-noqa",
+      "category": "suppression",
+      "regex": "#\\s*noqa\\b",
+      "description": "Python flake8/ruff '# noqa' line suppression.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-type-ignore",
+      "category": "suppression",
+      "regex": "#\\s*type:\\s*ignore\\b",
+      "description": "Python '# type: ignore' (mypy/pyright) suppression.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-pylint-disable",
+      "category": "suppression",
+      "regex": "#\\s*pylint:\\s*disable\\b",
+      "description": "Pylint disable comment.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-nolint",
+      "category": "suppression",
+      "regex": "//\\s*nolint\\b",
+      "description": "Go golangci-lint '//nolint' directive.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-nosonar",
+      "category": "suppression",
+      "regex": "\\bNOSONAR\\b",
+      "description": "SonarQube NOSONAR marker.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-suppresswarnings",
+      "category": "suppression",
+      "regex": "@SuppressWarnings\\b",
+      "description": "JVM @SuppressWarnings annotation.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-rust-allow",
+      "category": "suppression",
+      "regex": "#!?\\[allow\\(",
+      "description": "Rust #[allow(...)] / #![allow(...)] lint attribute.",
+      "rubric": "G4",
+      "extensions": [
+        ".rs"
+      ]
+    },
+    {
+      "id": "suppress-istanbul-ignore",
+      "category": "suppression",
+      "regex": "\\bistanbul\\s+ignore\\b",
+      "description": "Istanbul coverage exclusion comment.",
+      "rubric": "G4"
+    },
+    {
+      "id": "suppress-c8-ignore",
+      "category": "suppression",
+      "regex": "\\bc8\\s+ignore\\b",
+      "description": "c8 coverage exclusion comment.",
+      "rubric": "G4"
+    }
+  ]
+}

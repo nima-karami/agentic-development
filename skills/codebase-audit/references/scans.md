@@ -12,9 +12,11 @@ scan; a script left in a temp directory is lost evidence.
 
 ## Tool-first, safely
 
-1. **Order of preference:** the project's own configured tools (its linter, type
-   checker, dead-code and security scanners, as the gate manifest records them) →
-   an established tool for the stack → a script you write. A model reading files to
+1. **Order of preference:** the skill's bundled scripts in `scripts/` for anything
+   stack-neutral (history, pattern counts, gate manifest, fingerprints, arithmetic,
+   isolation, baselines) → the project's own configured tools (its linter, type
+   checker, dead-code and security scanners, as the gate manifest records them) → an
+   established tool for the stack → a script you write. A model reading files to
    count something is never on this list.
 2. **Run the project's own tools with the project's own config** first; their output
    is what the gates see. Run an extra tool only to measure something the project's
@@ -59,6 +61,9 @@ inheritance, test-only. Collapsing them hides real differences. Compute:
 
 ## History extractor
 
+`scripts/history.py` implements this recipe; run it with `--help` first.
+
+
 **Recipe.** Over the last twelve months (the run's range for `run` mode), rename-aware:
 
 - **churn** per file (commits and changed lines);
@@ -75,6 +80,11 @@ radon / any complexity counter. Treat tool default thresholds as defaults, not
 evidence.
 
 ## Gates extractor
+
+`scripts/manifest.py` (manifest validate/hash/diff, config history) and
+`scripts/patterns.py` with the `suppressions`, `skips`, `escape-hatches` and
+`failure-policy` packs implement most of this recipe.
+
 
 **Recipe.** Build the canonical gate manifest (fields in `rubric-gates.md`) from CI
 definitions, task runners, package scripts, pre-commit hooks, tool configs and the

@@ -1,0 +1,149 @@
+{
+  "name": "failure-policy",
+  "version": "1",
+  "description": "Settings that make a gate unable to fail or that hide failures: continue-on-error, allow_failure, '|| true', --max-warnings, --passWithNoTests, test retries.",
+  "limitations": [
+    "Each hit needs a human read: '|| true' on a cleanup step is fine, on a test step it defeats the gate.",
+    "Retry counts are only detected for the 'retries: N' form."
+  ],
+  "patterns": [
+    {
+      "id": "policy-continue-on-error",
+      "category": "failure-policy",
+      "regex": "\\bcontinue-on-error\\s*:\\s*true\\b",
+      "description": "CI step or job allowed to fail without failing the run.",
+      "rubric": "G1",
+      "extensions": [
+        ".yml",
+        ".yaml"
+      ]
+    },
+    {
+      "id": "policy-allow-failure",
+      "category": "failure-policy",
+      "regex": "\\ballow_failure\\s*:\\s*true\\b",
+      "description": "GitLab/Travis job allowed to fail.",
+      "rubric": "G1",
+      "extensions": [
+        ".yml",
+        ".yaml"
+      ]
+    },
+    {
+      "id": "policy-or-true",
+      "category": "failure-policy",
+      "regex": "\\|\\|\\s*(?:true\\b|exit\\s+0\\b)",
+      "description": "Command failure swallowed with '|| true' / '|| exit 0'.",
+      "rubric": "G1",
+      "extensions": [
+        ".yml",
+        ".yaml",
+        ".sh",
+        ".bash",
+        ".json",
+        ".toml",
+        ".mk",
+        ".cfg",
+        "Makefile",
+        "Dockerfile",
+        "Jenkinsfile"
+      ]
+    },
+    {
+      "id": "policy-max-warnings",
+      "category": "failure-policy",
+      "regex": "--max-warnings(?:[=\\s]+\\S+)?",
+      "description": "Lint warning budget (--max-warnings N): a non-zero N tolerates warnings.",
+      "rubric": "G1",
+      "extensions": [
+        ".yml",
+        ".yaml",
+        ".sh",
+        ".bash",
+        ".json",
+        ".toml",
+        ".mk",
+        ".cfg",
+        "Makefile",
+        "Dockerfile",
+        "Jenkinsfile",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ]
+    },
+    {
+      "id": "policy-pass-with-no-tests",
+      "category": "failure-policy",
+      "regex": "--passWithNoTests\\b|\\bpassWithNoTests\\s*:\\s*true\\b",
+      "description": "Test run passes when no tests are found.",
+      "rubric": "G1",
+      "extensions": [
+        ".yml",
+        ".yaml",
+        ".sh",
+        ".bash",
+        ".json",
+        ".toml",
+        ".mk",
+        ".cfg",
+        "Makefile",
+        "Dockerfile",
+        "Jenkinsfile",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ]
+    },
+    {
+      "id": "policy-exit-zero",
+      "category": "failure-policy",
+      "regex": "--exit-zero\\b",
+      "description": "Linter forced to exit 0 regardless of findings.",
+      "rubric": "G1",
+      "extensions": [
+        ".yml",
+        ".yaml",
+        ".sh",
+        ".bash",
+        ".json",
+        ".toml",
+        ".mk",
+        ".cfg",
+        "Makefile",
+        "Dockerfile",
+        "Jenkinsfile"
+      ]
+    },
+    {
+      "id": "policy-retries",
+      "category": "failure-policy",
+      "regex": "\\bretries\\s*:\\s*[1-9]\\d*\\b",
+      "description": "Test or job retries configured (flaky failures absorbed).",
+      "rubric": "G1",
+      "extensions": [
+        ".yml",
+        ".yaml",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "heuristic": true
+    }
+  ]
+}

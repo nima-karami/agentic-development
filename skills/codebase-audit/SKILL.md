@@ -195,6 +195,16 @@ This fan-out is expected for this skill; it is the reason the skill exists.
 A medium repo at `standard` depth is roughly twenty agents: four extractors, two
 context agents, eight to twelve judges, a handful of verifiers.
 
+## Bundled scripts
+
+`scripts/` holds stack-neutral, standard-library tools for everything that repeats
+across audits: history, pattern counts, the gate manifest, fingerprints, isolation,
+performance arithmetic and baselines. **They come before any hand-written scan.** This
+session runs only `fingerprint.py` (step 0) and `baseline.py` (step 7); every other
+script is run by the agent whose step names it. Give each such agent
+`references/scripts.md` with this skill's absolute path filled in — it holds the
+contract, the catalogue, the commands and how to diagnose a run.
+
 ## Steps
 
 ### 0. Profile the codebase and freeze the scope
@@ -220,7 +230,7 @@ silently miscalibrates every severity. Interactively, ask the user for whatever 
 docs do not settle and have them confirm the dominant attributes. Unattended, write
 `unknown`, judge as if the stakes were high, and list every unknown under
 `NOT_COVERED`. Say the mode, dimensions, depth and dominant attributes out loud in one
-line.
+line. Compute the scope fingerprint and the profile hash with `fingerprint.py`.
 
 In `drift` mode, start from the baseline's profile: re-confirm it, and compare the
 scope fingerprint before any number. A different scope produces phantom drift — either
@@ -241,7 +251,10 @@ profile's scope section only. They count; they do not judge.
 | **Performance** (when planned) | fan-out per flow, calls in loops, unbounded reads, blocking calls on critical threads, timers and broadcast with **computed** amplification, cache inventory, lifecycle pairing, resilience config, instrumentation inventory, bundle stats from an existing artifact |
 | **Inventories** | abstractions per concern class, ingestion points, public exports, catch-and-default sites, optional-then-guarded parameters, single-implementation interfaces, pass-through wrappers, dead exports and files, clone families |
 
-Mechanical tier. Each writes `work/facts/<extractor>.*` and a ten-line summary.
+Mechanical tier. Each gets `references/scripts.md` and starts from the bundled script
+for its job — `history.py`, `patterns.py`, `manifest.py`, `amplify.py` — then adds
+stack tools.
+Each writes `work/facts/<extractor>.*` and a ten-line summary.
 High-volume classification inside an extractor — tagging commits by author class,
 sorting a comment sample into what versus why — is fanned out to the bulk tier in
 batches; the extractor checks a handful of the bulk tier's labels before using them.
@@ -264,7 +277,8 @@ Two agents, judgment tier, run one after the other or with test-strength alone:
   body or return a default and check whether the tests still pass. Full mutation
   testing only where the stack already has a tool. It records the sample's file list
   so the next audit re-reads the same files. It runs alone: parallel test runs
-  fabricate results. **Mutation happens in an isolated worktree at the pinned commit,
+  fabricate results. **Mutation happens in an isolated worktree at the pinned commit
+  (`isolate.py create` / `remove`),
   never in the checkout being audited**: verify the worktree's base commit, link the
   existing dependency directory rather than installing, restore every mutated file,
   and remove the worktree at the end — unlinking the dependency directory first, so
@@ -294,7 +308,8 @@ outputs.
 
 At `standard` and `deep`, for performance candidates a judge marked as needing
 measurement — bounded by the profile's representative flows. One judgment-tier agent,
-**alone**, following the measurement protocol in `references/scans.md`: an isolated
+**alone**, following the measurement protocol in `references/scans.md` (`isolate.py`
+for the worktree): an isolated
 worktree or container at the pinned commit, dependencies from the lockfile with install
 scripts disabled inside the copy only, outbound network blocked, nothing else running.
 Approved production telemetry outranks any lab number. A measured number moves the
@@ -330,7 +345,8 @@ human — never confirmed by the model alone.
   table; authority conflicts as decisions needed; what was not covered and why.
 - A task list in the report, each task sized as one change, each recurring finding
   paired with the lint rule or structural test that would stop it mechanically.
-- `docs/audits/baseline.json` — per `references/baseline.md`, assembled by one
+- `docs/audits/baseline.json` — per `references/baseline.md`, checked with
+  `baseline.py validate` and, in drift mode, diffed with `baseline.py compare`; assembled by one
   mechanical-tier agent from `work/facts/`, `work/tests.md` and the profile, then
   parsed back to prove it is valid. The orchestrator does not hand-assemble it; it
   reviews the agent's list of fields it could not fill. Overwritten each audit;
@@ -438,5 +454,7 @@ interval has evidence behind it; the backstop is a management choice.
 - `references/judge-brief.md` — the judge prompt, its slots, and the finding schema.
 - `references/verifier-brief.md` — the verifier prompt and its verdicts.
 - `references/baseline.md` — the baseline schema and the drift-comparison rules.
+- `references/scripts.md` — the bundled scripts: contract, catalogue, commands,
+  diagnosis. Passed to every agent that runs one.
 - `references/model-tiers.md` — tiers mapped to concrete models per harness, and the
   fallback when subagent dispatch is unavailable.

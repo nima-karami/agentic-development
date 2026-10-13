@@ -1,0 +1,145 @@
+{
+  "name": "permissive-flags",
+  "version": "1",
+  "description": "Security controls switched off or loosened: TLS verification, wildcard CORS, Electron hardening flags, CSRF, debug mode, shell=True, eval, and git --no-verify. Every hit is a candidate; confirm whether the value reaches production.",
+  "limitations": [
+    "Pure text match: the same string in tests, fixtures, docs and examples counts unless excluded with --exclude or --tests exclude.",
+    "Does not see flags set through computed values or environment variables."
+  ],
+  "patterns": [
+    {
+      "id": "flag-reject-unauthorized",
+      "category": "permissive-flag",
+      "regex": "rejectUnauthorized['\\\"]?\\s*[:=]\\s*false\\b",
+      "description": "Node TLS rejectUnauthorized disabled.",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-verify-false",
+      "category": "permissive-flag",
+      "regex": "\\bverify\\s*=\\s*False\\b",
+      "description": "Python requests/httpx verify=False (TLS verification off).",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-insecure-skip-verify",
+      "category": "permissive-flag",
+      "regex": "InsecureSkipVerify['\\\"]?\\s*[:=]\\s*true\\b",
+      "description": "Go tls.Config InsecureSkipVerify enabled.",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-node-tls-env",
+      "category": "permissive-flag",
+      "regex": "NODE_TLS_REJECT_UNAUTHORIZED",
+      "description": "NODE_TLS_REJECT_UNAUTHORIZED referenced; usually set to 0 to disable TLS verification.",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-cors-wildcard",
+      "category": "permissive-flag",
+      "regex": "Access-Control-Allow-Origin['\\\"]?\\s*[:,=]\\s*['\\\"]?\\*|\\borigin['\\\"]?\\s*:\\s*['\\\"]\\*['\\\"]",
+      "description": "Wildcard CORS origin.",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-node-integration",
+      "category": "permissive-flag",
+      "regex": "nodeIntegration['\\\"]?\\s*:\\s*true\\b",
+      "description": "Electron nodeIntegration enabled in a renderer.",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-context-isolation-off",
+      "category": "permissive-flag",
+      "regex": "contextIsolation['\\\"]?\\s*:\\s*false\\b",
+      "description": "Electron contextIsolation disabled.",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-sandbox-off",
+      "category": "permissive-flag",
+      "regex": "\\bsandbox['\\\"]?\\s*:\\s*false\\b",
+      "description": "Electron renderer sandbox disabled.",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-web-security-off",
+      "category": "permissive-flag",
+      "regex": "webSecurity['\\\"]?\\s*:\\s*false\\b",
+      "description": "Electron webSecurity disabled.",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-insecure-content",
+      "category": "permissive-flag",
+      "regex": "allowRunningInsecureContent",
+      "description": "Electron allowRunningInsecureContent referenced (true allows mixed content).",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-csrf-off",
+      "category": "permissive-flag",
+      "regex": "\\bcsrf['\\\"]?\\s*:\\s*false\\b",
+      "description": "CSRF protection disabled in config.",
+      "rubric": "S11",
+      "flags": "i"
+    },
+    {
+      "id": "flag-csrf-exempt",
+      "category": "permissive-flag",
+      "regex": "@csrf_exempt\\b",
+      "description": "Django @csrf_exempt view decorator.",
+      "rubric": "S11"
+    },
+    {
+      "id": "flag-debug-true",
+      "category": "permissive-flag",
+      "regex": "^\\s*DEBUG\\s*=\\s*True\\b",
+      "description": "Python/Django DEBUG = True at assignment level.",
+      "rubric": "S11",
+      "extensions": [
+        ".py"
+      ]
+    },
+    {
+      "id": "flag-shell-true",
+      "category": "permissive-flag",
+      "regex": "\\bshell\\s*=\\s*True\\b",
+      "description": "Python subprocess shell=True (command injection surface).",
+      "rubric": "S11",
+      "extensions": [
+        ".py"
+      ]
+    },
+    {
+      "id": "flag-eval",
+      "category": "permissive-flag",
+      "regex": "(?<![\\w.$])eval\\s*\\(",
+      "description": "Direct eval( call.",
+      "rubric": "S11",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts",
+        ".py",
+        ".rb",
+        ".php",
+        ".pl"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "flag-no-verify",
+      "category": "permissive-flag",
+      "regex": "--no-verify\\b",
+      "description": "git --no-verify bypasses commit and push hooks.",
+      "rubric": "S11"
+    }
+  ]
+}

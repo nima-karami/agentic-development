@@ -1,0 +1,146 @@
+{
+  "name": "skips",
+  "version": "1",
+  "applies_to_tests": true,
+  "description": "Skipped, focused, todo and expected-failure tests. These live in test files: scan with --tests include or --tests only, otherwise the default production-only mode excludes them.",
+  "limitations": [
+    "Conditional skips (skipIf, skipif) are counted like unconditional ones.",
+    "Quarantine lists kept in config files are not detected."
+  ],
+  "patterns": [
+    {
+      "id": "skip-js-skip",
+      "category": "skip",
+      "regex": "\\b(?:it|test|describe|context|suite)\\.skip\\b|\\b(?:it|test|describe)\\.skipIf\\b|\\b(?:it|test)\\.fixme\\b",
+      "description": "JS/TS runner .skip / .skipIf / .fixme.",
+      "rubric": "G5",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ]
+    },
+    {
+      "id": "skip-js-x",
+      "category": "skip",
+      "regex": "\\b(?:xit|xdescribe|xtest)\\s*\\(",
+      "description": "Jasmine/Jest x-prefixed disabled test or suite.",
+      "rubric": "G5",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ]
+    },
+    {
+      "id": "skip-js-todo",
+      "category": "skip",
+      "regex": "\\b(?:it|test|describe)\\.todo\\b",
+      "description": "JS/TS runner .todo placeholder test.",
+      "rubric": "G5",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ]
+    },
+    {
+      "id": "skip-js-only",
+      "category": "focused",
+      "regex": "\\b(?:it|test|describe|context|suite)\\.only\\b|\\b(?:fit|fdescribe)\\s*\\(",
+      "description": "Focused test (.only / fit / fdescribe): silently skips every other test in the run.",
+      "rubric": "G5",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ]
+    },
+    {
+      "id": "skip-java-disabled",
+      "category": "skip",
+      "regex": "@Disabled\\b",
+      "description": "JUnit 5 @Disabled.",
+      "rubric": "G5",
+      "extensions": [
+        ".java",
+        ".kt",
+        ".scala",
+        ".groovy"
+      ]
+    },
+    {
+      "id": "skip-java-ignore",
+      "category": "skip",
+      "regex": "@Ignore\\b",
+      "description": "JUnit 4 @Ignore.",
+      "rubric": "G5",
+      "extensions": [
+        ".java",
+        ".kt",
+        ".scala",
+        ".groovy"
+      ]
+    },
+    {
+      "id": "skip-pytest-mark",
+      "category": "skip",
+      "regex": "@pytest\\.mark\\.(?:skip|skipif|xfail)\\b|\\bpytest\\.(?:skip|xfail)\\s*\\(",
+      "description": "pytest skip, skipif and xfail markers or calls.",
+      "rubric": "G5",
+      "extensions": [
+        ".py"
+      ]
+    },
+    {
+      "id": "skip-unittest",
+      "category": "skip",
+      "regex": "@unittest\\.(?:skip|skipIf|skipUnless|expectedFailure)\\b",
+      "description": "unittest skip and expectedFailure decorators.",
+      "rubric": "G5",
+      "extensions": [
+        ".py"
+      ]
+    },
+    {
+      "id": "skip-go-skip",
+      "category": "skip",
+      "regex": "\\b(?:t|b)\\.Skip(?:f|Now)?\\s*\\(",
+      "description": "Go testing t.Skip / t.Skipf / t.SkipNow.",
+      "rubric": "G5",
+      "extensions": [
+        ".go"
+      ]
+    },
+    {
+      "id": "skip-rust-ignore",
+      "category": "skip",
+      "regex": "#\\[ignore\\b",
+      "description": "Rust #[ignore] test attribute.",
+      "rubric": "G5",
+      "extensions": [
+        ".rs"
+      ]
+    }
+  ]
+}

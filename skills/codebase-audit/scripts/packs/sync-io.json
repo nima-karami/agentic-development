@@ -1,0 +1,105 @@
+{
+  "name": "sync-io",
+  "version": "1",
+  "description": "Blocking calls that stall an event loop, UI thread or request handler: Node *Sync fs/child_process/crypto calls, Python requests without a timeout, blocking sleeps. Input for the performance audit's blocking-work check; a hit is only a problem on a latency-critical path.",
+  "limitations": [
+    "Does not know the calling context: a *Sync call in a one-shot CLI or at startup is fine; open() inside an async def is not detectable by a line scan.",
+    "sync-py-requests-no-timeout only sees 'timeout=' on the same line; a multi-line call with timeout on a later line is a false positive.",
+    "Blocking sleeps are listed regardless of whether they run on a latency-critical thread."
+  ],
+  "patterns": [
+    {
+      "id": "sync-node-fs",
+      "category": "sync-io",
+      "regex": "\\b(?:readFileSync|writeFileSync|appendFileSync|readdirSync|statSync|lstatSync|existsSync|mkdirSync|rmSync|rmdirSync|unlinkSync|copyFileSync|renameSync|accessSync|openSync|realpathSync|readlinkSync|symlinkSync|chmodSync|utimesSync|mkdtempSync|cpSync)\\s*\\(",
+      "description": "Node synchronous fs call.",
+      "rubric": "P4",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "sync-node-process",
+      "category": "sync-io",
+      "regex": "\\b(?:execSync|spawnSync|execFileSync)\\s*\\(",
+      "description": "Node synchronous child_process call.",
+      "rubric": "P4",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "sync-node-crypto-zlib",
+      "category": "sync-io",
+      "regex": "\\b(?:pbkdf2|scrypt|gzip|gunzip|deflate|inflate|brotliCompress|brotliDecompress|generateKeyPair|randomFill)Sync\\s*\\(",
+      "description": "Node synchronous crypto/zlib call (CPU-bound on the event loop).",
+      "rubric": "P4",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "code_only": true
+    },
+    {
+      "id": "sync-py-requests-no-timeout",
+      "category": "sync-io",
+      "regex": "\\brequests\\.(?:get|post|put|patch|delete|head|request)\\s*\\(",
+      "description": "Python requests call without timeout= on the same line (blocking, can hang forever).",
+      "rubric": "P4",
+      "extensions": [
+        ".py"
+      ],
+      "code_only": true,
+      "heuristic": true,
+      "exclude_regex": "timeout\\s*="
+    },
+    {
+      "id": "sync-py-time-sleep",
+      "category": "sync-io",
+      "regex": "\\btime\\.sleep\\s*\\(",
+      "description": "Python time.sleep: blocks the thread.",
+      "rubric": "P4",
+      "extensions": [
+        ".py"
+      ],
+      "code_only": true,
+      "heuristic": true
+    },
+    {
+      "id": "sync-java-thread-sleep",
+      "category": "sync-io",
+      "regex": "\\bThread\\.sleep\\s*\\(",
+      "description": "Java Thread.sleep: blocks the thread.",
+      "rubric": "P4",
+      "extensions": [
+        ".java",
+        ".kt",
+        ".scala"
+      ],
+      "code_only": true,
+      "heuristic": true
+    }
+  ]
+}
