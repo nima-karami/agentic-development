@@ -51,6 +51,7 @@ repo (or with `--repo`).
 | `manifest.py` | gates extractor | gate manifest validate / hash / diff (weakenings flagged); candidate relaxations in gate-config history |
 | `isolate.py` | test strength, measurement | isolated worktree with linked dependencies, created and removed safely |
 | `amplify.py` | performance extractor, judges | polling, broadcast, pool, memory and fan-out arithmetic from profile numbers — the only source of a `computed` status |
+| `record.py` | orchestrator | the run record: log every dispatch, reply and script run; build `review.md`; check for gaps |
 | `baseline.py` | baseline assembler, orchestrator | validate a baseline; compare two into deltas, ratchet breaches and trend; explain a field |
 
 ### fingerprint.py — `scope`, `profile`, `compare`
@@ -136,6 +137,19 @@ no-budget`. Inputs come from the profile or from a measurement — `memory` refu
 run without a measured bytes-per-connection. `batch` takes a list of
 `{"calc", "args", "label"}` so the performance extractor computes everything in one
 call.
+
+### record.py — `log`, `index`, `check`
+
+```
+python -I <skill>/scripts/record.py log dispatch --run docs/audits/<run> --role judge --wave 3 --tier judgment --model opus --brief work/briefs/12-judge-contracts-api.md
+python -I <skill>/scripts/record.py log done --run docs/audits/<run> --seq 12 --status ok --output work/findings/contracts-api.md --summary work/summaries/12-judge-contracts-api.md
+python -I <skill>/scripts/record.py index --run docs/audits/<run>
+python -I <skill>/scripts/record.py check --run docs/audits/<run> --fail-on-gaps
+```
+
+Writes only inside `--run`. `index` parses the model-written markdown leniently and
+warns about anything it could not read; `check` lists every gap with a fix hint. The
+layout and rules are in `run-record.md`.
 
 ### baseline.py — `validate`, `compare`, `explain`
 

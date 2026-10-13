@@ -91,4 +91,8 @@ Authority conflicts use:
 - decision needed: <the question a human must answer>
 ```
 
-End the file with a `Dismissed` list (candidate → reason) and a `Not assessed` list.
+End the file with a `## Dismissed` list — every candidate you were given and did not
+confirm, one bullet each: `<anchor or candidate id> — <reason>` — and a `## Not assessed`
+list, one bullet each with its reason: `out of sample`, `row ruled out by profile`,
+`profile-blocked`, `could not read`, or `out of time`. A candidate that appears in
+neither your findings nor these lists is a gap in the run record.

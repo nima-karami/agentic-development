@@ -6,6 +6,11 @@ tier below the session; mechanical work two tiers below, with a floor at the mid
 never delegate upward; the bottom tier never builds against slow or flaky suites and
 never writes a root-cause diagnosis.
 
+**This skill is the judgment-heavy exception.** Judging an unfamiliar codebase is the
+work the audit exists for, and a wrongly judged or wrongly confirmed finding costs more
+than the tokens saved. So the **judgment tier runs at the session's model** — the same
+tier, never above it. Mechanical and bulk work stay below.
+
 **The session's tier caps everything.** Choose the session model once, at the start of
 the audit, and never dispatch above it. The top tier is not used for audits — its
 cost buys nothing the session tier cannot do here.
@@ -16,8 +21,8 @@ cost buys nothing the session tier cannot do here.
 |---|---|---|
 | Orchestrator: scope, slicing, merge, final severity | session | holds every decision |
 | Verifier of a **Critical** finding | session | a falsely confirmed Critical is the most expensive error the audit can make |
-| Intent ledger, test strength, judges, other verifiers | judgment | judgment-heavy, one below the session |
-| Extractors | mechanical | they write and run scans; the floor keeps them off the bottom tier because they execute tooling |
+| Intent ledger, judges, verifiers | judgment | the judgment-heavy core; runs at the session's model |
+| Extractors, test strength, measurement, baseline assembly | mechanical | they write and run scans; the floor keeps them off the bottom tier because they execute tooling |
 | Bulk classification (commit author class, comment what-vs-why, candidate pre-filter) | bulk | high volume, narrow labels, spot-checked by the extractor that asked |
 
 ## Claude Code
@@ -25,19 +30,17 @@ cost buys nothing the session tier cannot do here.
 | Tier | Model | Dispatch |
 |---|---|---|
 | session | Opus | the session itself |
-| judgment | Sonnet | subagent, `model: sonnet` |
+| judgment | Opus | subagent, `model: opus` |
 | mechanical | Sonnet | subagent, `model: sonnet` |
 | bulk | Haiku | subagent, `model: haiku` |
 
 - Name `model` explicitly on every dispatch; an omitted model inherits the session's
   and silently runs every agent at session cost.
-- Critical verifiers: `model: opus` (same tier as the session, never above it).
 - The top tier (Fable) is never used by this skill.
-- **Open question, measured by the field runs:** whether mid-tier judges are good
-  enough for the contracts dimension. Each audit's `confirmed_share` is the metric. To
-  test it directly, judge one contracts slice twice — once at the judgment tier, once
-  at the session tier — and compare the confirmed findings. If the gap is real, raise
-  contracts judges to the session tier and record that here.
+- **Cost.** Judges and verifiers dominate the bill. To spend less, lower the depth or
+  the number of slices — never the judges' model. If a budget forces mid-tier judges
+  for a low-stakes dimension (verbosity is the usual candidate), record that in the
+  profile's audit plan and in the report, and expect a lower `confirmed_share`.
 
 ## Codex
 

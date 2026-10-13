@@ -88,6 +88,10 @@ codebase-audit [drift|inherited|run <base>..<head>] [<dimension> ...] [--depth q
   project's code (tests, builds, load or profiling runs) except in isolation and
   never under concurrent load. A tool that cannot meet these is skipped and the gap
   listed under `NOT_COVERED`.
+- **Keep the whole run, not just the merge.** Every brief sent, every reply received,
+  every candidate, every dismissal, every refuted finding and every script run stays
+  on disk, indexed for a human reviewer (`references/run-record.md`). The merge never
+  edits an agent's output, and an audit whose record has gaps is not finished.
 - **Scans are kept, not thrown away.** Every script and exact tool command an agent
   used is saved under the run's `work/scripts/`, with versions, so the next audit
   reruns the identical scan. A scan that cannot be rerun cannot measure drift.
@@ -134,7 +138,9 @@ codebase-audit [drift|inherited|run <base>..<head>] [<dimension> ...] [--depth q
 - **Model tier rule.** The session holds decisions. Judgment-heavy delegated work
   runs one tier below the session; mechanical work two tiers below, with a floor at
   the mid tier; never delegate upward. The bottom tier never builds against slow or
-  flaky suites and never writes a root-cause diagnosis.
+  flaky suites and never writes a root-cause diagnosis. **This skill's judging is the
+  judgment-heavy exception: the judgment tier runs at the session's model, never
+  above it** (`references/model-tiers.md`).
 - **Concurrency hygiene.** Never run the full gate under concurrent subagent load.
   Never share temp or browser-profile directories across sessions. Never kill
   processes by image name. Verify a worktree's base commit before building on it.
@@ -155,9 +161,9 @@ codebase-audit [drift|inherited|run <base>..<head>] [<dimension> ...] [--depth q
 ```
 Orchestrator (session tier) — scope, dispatch, merge, report. Never reads code.
 ├─ Wave 1 · Extraction   mechanical tier, parallel; bulk tier for classification → work/facts/*
-├─ Wave 2 · Context      judgment tier                 → work/intent.md, work/tests.md
+├─ Wave 2 · Context      judgment (ledger), mechanical (tests) → work/intent.md, work/tests.md
 ├─ Wave 3 · Judges       judgment tier, one per dimension × slice → work/findings/*
-├─ Wave 4 · Measurement  judgment tier, alone, isolated; standard/deep only → work/measurements/*
+├─ Wave 4 · Measurement  mechanical tier, alone, isolated; standard/deep only → work/measurements/*
 ├─ Wave 5 · Verifiers    judgment tier; session tier for Critical → work/verdicts/*
 └─ Merge                 orchestrator → report.md, tasks, baseline.json
 ```
@@ -165,8 +171,8 @@ Orchestrator (session tier) — scope, dispatch, merge, report. Never reads code
 | Tier | Does | Never does |
 |---|---|---|
 | **session** | scope, slicing, merge, final severity; verifies Critical findings | read code to "get oriented" |
-| **judgment** | intent ledger, test strength, judges, verifiers | — |
-| **mechanical** | extractors: write and run scans, produce facts | judge a candidate |
+| **judgment** | intent ledger, judges, verifiers — at the session's model | — |
+| **mechanical** | extractors, test strength, measurement, baseline assembly | judge a candidate |
 | **bulk** | high-volume classification: comment what-vs-why, commit author class, candidate pre-filtering | run suites, build, judge, or write a diagnosis |
 
 The tiers are roles, not models. `references/model-tiers.md` maps them to concrete
@@ -185,8 +191,10 @@ part its job needs, because context it does not need biases what it finds.
 | Verifiers | nothing | they test whether a claim is true; context pulls them toward confirming |
 | Merge | the whole profile | final severity and ordering |
 
-**Hand-offs go through files, never context.** Each agent writes its output under the
-run's `work/` directory and returns a short summary; the orchestrator reads summaries
+**Hand-offs go through files, never context.** Before each dispatch, save the exact
+brief under `work/briefs/` and log it; after, save the reply under `work/summaries/` and
+log the outcome — failed and empty agents included (`record.py log`). Each agent writes
+its output under the run's `work/` directory and returns a short summary; the orchestrator reads summaries
 and the specific files it needs to merge. This keeps the orchestrator light, makes an
 interrupted audit resumable, and keeps one agent's reasoning out of the next one's
 context. **Concurrency cap: about four agents at once.** Test-strength work runs alone.
@@ -200,7 +208,8 @@ context agents, eight to twelve judges, a handful of verifiers.
 `scripts/` holds stack-neutral, standard-library tools for everything that repeats
 across audits: history, pattern counts, the gate manifest, fingerprints, isolation,
 performance arithmetic and baselines. **They come before any hand-written scan.** This
-session runs only `fingerprint.py` (step 0) and `baseline.py` (step 7); every other
+session runs only `fingerprint.py` (step 0), `record.py` (every dispatch, and the index
+at the end) and `baseline.py` (step 7); every other
 script is run by the agent whose step names it. Give each such agent
 `references/scripts.md` with this skill's absolute path filled in — it holds the
 contract, the catalogue, the commands and how to diagnose a run.
@@ -261,7 +270,8 @@ batches; the extractor checks a handful of the bulk tier's labels before using t
 
 ### 2. Wave 2 — context
 
-Two agents, judgment tier, run one after the other or with test-strength alone:
+Two agents — the intent ledger at the judgment tier, test strength at the mechanical
+tier — run one after the other or with test strength alone:
 
 - **Intent ledger.** Reads enforced rules and structural tests, decision records,
   agent instruction files, and prose docs, and turns them into claims, each with
@@ -307,7 +317,7 @@ outputs.
 ### 4. Wave 4 — measurement
 
 At `standard` and `deep`, for performance candidates a judge marked as needing
-measurement — bounded by the profile's representative flows. One judgment-tier agent,
+measurement — bounded by the profile's representative flows. One mechanical-tier agent,
 **alone**, following the measurement protocol in `references/scans.md` (`isolate.py`
 for the worktree): an isolated
 worktree or container at the pinned commit, dependencies from the lockfile with install
@@ -332,7 +342,9 @@ dropped and counted.
 
 The orchestrator merges `work/findings/`, `work/measurements/` and `work/verdicts/`:
 apply measured values to their candidates, apply the one-owner rule, drop unanchored and
-refuted findings, merge by root cause, apply the severity table, cap the list. Then a
+refuted findings, merge by root cause, apply the severity table, cap the list. Record
+every raw finding's disposition — merged, kept, downgraded, refuted, dropped with its
+reason, duplicate — in `work/merge.md`; nothing leaves the report without a line there. Then a
 human confirms Critical and High findings and a small random sample of the rest; the
 **confirmed share** is the audit's measured precision and goes into the baseline.
 
@@ -351,6 +363,12 @@ human — never confirmed by the model alone.
   parsed back to prove it is valid. The orchestrator does not hand-assemble it; it
   reviews the agent's list of fields it could not fill. Overwritten each audit;
   history lives in version control.
+- `review.md` — the human review index, generated by `record.py index`: what is worth
+  a human look below the line (refuted and downgraded findings, dismissed candidates
+  on hotspots and stakes paths, low-confidence findings, authority conflicts,
+  unmeasured candidates, not-assessed items, unreviewed candidates, script warnings),
+  the merge trace, every agent, every file. Then `record.py check --fail-on-gaps`
+  must pass before the handoff block is written.
 - `work/` stays beside the report so the audit can be resumed or re-checked; the
   project decides whether to commit it.
 
@@ -454,6 +472,8 @@ interval has evidence behind it; the backstop is a management choice.
 - `references/judge-brief.md` — the judge prompt, its slots, and the finding schema.
 - `references/verifier-brief.md` — the verifier prompt and its verdicts.
 - `references/baseline.md` — the baseline schema and the drift-comparison rules.
+- `references/run-record.md` — the run directory layout, the append-only rules, the
+  merge trace, and what `review.md` shows a human.
 - `references/scripts.md` — the bundled scripts: contract, catalogue, commands,
   diagnosis. Passed to every agent that runs one.
 - `references/model-tiers.md` — tiers mapped to concrete models per harness, and the
